@@ -1,0 +1,150 @@
+/* organisation module styles — component-specific only; shared components live in design.css */
+
+.org-header-card { padding: 28px 32px; }
+.org-header-card .org-logo { background: var(--tint); border: 0; }
+.org-header-card .org-name { font-size: 28px; line-height: 32px; }
+.org-header-card .org-meta { margin-top: 14px; color: var(--text); }
+.org-header-card .org-meta svg.lucide { width: 14px; height: 14px; }
+
+.org-section { padding: 28px 24px; }
+.org-section .card-header { margin-bottom: 8px; }
+.org-card-title { font-size: 20px; line-height: 24px; }
+.org-card-sub { font-size: 12px; letter-spacing: .5px; margin-top: 8px; color: var(--text); }
+.org-edit-btn { width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: var(--primary); display: inline-grid; place-items: center; flex-shrink: 0; }
+.org-edit-btn:hover, .org-edit-btn.on { background: var(--tint); }
+
+.org-section .form-section-title { margin-top: 28px; }
+.org-section .card-header + .kv-grid, .org-section .card-header + .banner, .org-section .card-header + #org-invoice-region, .org-section .card-header + .stack-sm { margin-top: 24px; }
+.org-kv { gap: 28px 48px; }
+.org-kv .kv-value { word-break: break-word; }
+.org-form { gap: 20px 48px; }
+.org-kv-full { grid-column: 1 / -1; }
+.org-sync-note { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 11px; }
+.org-sync-note svg.lucide { width: 12px; height: 12px; }
+.org-form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+
+/* Subscription & Plan */
+.org-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
+.org-plan-grid > div { padding: 0 24px; border-left: 1px solid var(--border); }
+.org-plan-grid > div:first-child { padding-left: 0; border-left: 0; }
+.org-plan-grid .kv-label { margin-bottom: 8px; }
+.org-plan-value { font-family: var(--font-head); font-weight: 700; font-size: 18px; line-height: 24px; }
+.org-plan-sub { font-size: 11px; color: var(--text-muted); letter-spacing: .5px; margin-top: 6px; }
+.org-plan-options { display: flex; flex-direction: column; gap: 10px; }
+.org-plan-option { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-md); cursor: pointer; }
+.org-plan-option:has(input:checked) { border-color: var(--primary); background: var(--tint); }
+.org-plan-option input { margin-top: 3px; accent-color: var(--primary); }
+
+.org-card-list { display: flex; flex-direction: column; gap: 8px; }
+.org-card-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-light); border-radius: var(--r-md); font-size: 14px; }
+
+/* Links (Figma: underlined blue text actions) */
+.org-link { border: 0; background: none; padding: 0; color: var(--link); font-size: 12px; text-decoration: underline; display: inline-flex; align-items: center; gap: 6px; letter-spacing: .25px; }
+.org-link:hover { color: var(--primary-hover); }
+.org-link.t-error { color: var(--error); }
+.org-dl { text-decoration: none; color: var(--blue-light); }
+.org-dl:hover { text-decoration: underline; }
+.org-link svg.lucide { width: 14px; height: 14px; }
+
+/* Logo cards */
+
+/* Colour swatches */
+
+/* Typography */
+
+/* Brand assets */
+.org-asset-grid { gap: 18px; margin-top: 16px; }
+.org-asset { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 12px; }
+.org-asset { padding: 18px 16px; }
+.org-asset-name { font-weight: 700; font-size: 14px; }
+.org-asset-meta { font-size: 13px; color: var(--text-muted, #9A9A9A); margin-top: 6px; }
+.org-asset .org-link { font-size: 14px; }
+.org-asset .kebab { width: 24px; height: 24px; margin-left: -4px; color: #9A9A9A; }
+.org-asset .menu-anchor { flex-shrink: 0; }
+.org-upload-btn { border-radius: 999px; }
+.org-asset-icon { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--tint); color: var(--primary); display: grid; place-items: center; flex-shrink: 0; }
+
+@media (max-width: 1100px) {
+}
+@media (max-width: 960px) {
+  .org-plan-grid { grid-template-columns: 1fr; gap: 16px; }
+  .org-plan-grid > div { padding: 0; border-left: 0; }
+  .org-header-card { flex-direction: column; align-items: flex-start; }
+}
+
+/* Services & Contract (agency CRM) */
+.org-svc-table { margin-top: 24px; }
+.org-svc-sync { margin-top: 14px; }
+@media (max-width: 960px) {
+}
+/* Contracts & Payments (Services & Contract card) */
+
+/* ---------- Services & Contract status + Billing Tracking (Figma 6628:35585) ---------- */
+.org-svc-st { font-weight: 700; }
+.org-svc-st .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.org-svc-st.is-live { color: #3FAE4A; }
+.org-svc-st.is-paused { color: #D9A700; }
+.org-svc-st.is-cancelled { color: #E0524F; }
+.org-svc-st.is-upcoming { color: var(--primary); }
+.org-svc-st.is-ended { color: var(--text-muted); }
+.org-bt-toolbar { display: flex; gap: 24px; align-items: center; margin-top: 8px; }
+.org-bt-toolbar .search .input { height: 48px; }
+.org-bt-range { display: inline-flex; align-items: center; justify-content: space-between; gap: 16px; width: 300px; height: 48px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); font: inherit; font-size: 16px; letter-spacing: .5px; color: var(--text-secondary); cursor: pointer; }
+.org-bt-range svg.lucide { width: 20px; height: 20px; color: var(--text); }
+.org-bt-range-pop { right: 0; left: auto; width: 300px; padding: 14px; display: none; flex-direction: column; gap: 12px; }
+.org-bt-range-pop.open { display: flex; }
+.org-bt-range-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.org-bt-tabs { margin: 24px 0 24px; }
+.org-bt-table { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.org-bt-line { display: grid; grid-template-columns: 1.05fr 1.6fr 1.1fr 1.6fr 1.15fr 1fr; gap: 16px; align-items: center; padding: 16px 18px; font-size: 13px; letter-spacing: .5px; }
+.org-bt-colhead { background: var(--tint); font-weight: 700; padding: 14px 18px; }
+.org-bt-row + .org-bt-row, .org-bt-colhead + .org-bt-row { border-top: 1px solid var(--border-light); }
+.org-bt-row > .org-bt-line { cursor: pointer; }
+.org-bt-row > .org-bt-line:hover { background: #F8FBFF; }
+.org-bt-contract { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; }
+.org-bt-contract svg.lucide { width: 14px; height: 14px; }
+.org-bt-progress { display: flex; flex-direction: column; gap: 6px; }
+.org-bt-progress-top { display: flex; justify-content: space-between; }
+.org-bt-bar { height: 10px; border-radius: 99px; background: var(--grey-light); overflow: hidden; }
+.org-bt-bar span { display: block; height: 100%; background: var(--success-pill); border-radius: 99px; }
+.org-bt-dates { line-height: 20px; }
+.org-st { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 12px; border-radius: var(--r-pill); font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; }
+.org-st-lg { min-width: 116px; height: 26px; font-size: 13px; }
+/* Status palette: Paid green · Pending orange · Paused golden yellow (dark text, so it stays readable) · Cancelled red ·
+   Upcoming grey. Orange (~28°) and yellow (~48°) are far enough apart in hue to tell apart at a glance. */
+.org-st-paid { background: #3FAE4A; }
+.org-st-pending { background: #EE7A1A; }
+.org-st-paused { background: #F5C518; color: #4A3B00; }
+.org-st-cancelled { background: #E0524F; }
+.org-st-upcoming { background: #8A8A8A; }
+.org-bt-detail { padding: 0 18px 18px; background: var(--page); }
+.org-bt-breakdown { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px; }
+.org-bt-bd-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; letter-spacing: .5px; }
+.org-bt-sub { font-size: 13px; color: var(--text-muted); margin-top: 18px; letter-spacing: .5px; }
+.org-bt-banner { display: flex; align-items: center; gap: 14px; margin: 18px 0; padding: 12px 24px; border: 1px solid; border-radius: var(--r-md); font-size: 13px; letter-spacing: .5px; }
+.org-bt-banner svg.lucide { width: 20px; height: 20px; flex-shrink: 0; }
+.org-bn-cancelled { background: #FBE3E3; border-color: #E44A4A; color: #C62828; }
+.org-bn-paused { background: #FFF9DB; border-color: #E8C11A; color: #846700; }
+.org-bn-pending { background: #FFF1E6; border-color: #F5A35C; color: #B45309; }
+.org-bn-paid { background: #E9F8E9; border-color: #4CC255; color: #2E7D32; }
+.org-bt-periods { display: grid; gap: 18px; }
+.org-bt-period { border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 18px 14px; background: #FDFDFD; min-width: 0; }
+.org-bt-period-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; letter-spacing: .5px; }
+.org-bt-period-amt { font-size: 13px; margin: 8px 0 8px; letter-spacing: .5px; }
+.org-bt-period-line { display: flex; align-items: center; gap: 8px; font-size: 13px; letter-spacing: .5px; }
+.org-bt-period-line svg.lucide { width: 16px; height: 16px; flex-shrink: 0; }
+.org-tx-pending { color: #C25E0A; }
+.org-tx-paused { color: #9A7A00; }
+.org-bt-all { margin-top: 18px; font-size: 13px; text-decoration: underline; }
+.org-bt-empty { padding: 24px; }
+.org-svc-pills .chip { color: var(--text); }
+@media (max-width: 1100px) {
+  .org-bt-line { grid-template-columns: 1fr 1fr; }
+  .org-bt-colhead { display: none; }
+  .org-bt-periods { grid-template-columns: 1fr 1fr !important; }
+  .org-bt-toolbar { flex-wrap: wrap; }
+}
+
+.org-bt-period-line.t-success { color: #2E9E38; }
+.org-bt-period-line.t-error { color: #D32F2F; }
+.org-bt-period-line.t-muted { color: #8A8A8A; }
