@@ -2195,7 +2195,7 @@ function repSampleWs() {
 // =====================================================================
 // Each client's report set-up (in memory, like the rest of the demo)
 // =====================================================================
-// cfg: { auto, owner (agency member: "Prepared by" and reply-to), subject, message, to: [{ id, name, email }],
+// cfg: { owner (agency member: "Prepared by" and reply-to), subject, message, to: [{ id, name, email }],
 //        cc: [agency member ids], reports: { sem | smm: { on, off: [section ids turned off], charts: [chart ids turned off],
 //        hide: { table or summary cards id: [column / number keys turned off] } } }, createdAt }
 const repConfigs = {};
@@ -2212,7 +2212,7 @@ function repNewConfig(wsId, o = {}) {
   const owner = wsPrimaryContact(wsId);
   const ws = wsById(wsId);
   return {
-    auto: true, owner: CURRENT_USER_ID, subject: REP_SUBJECT, message: REP_MESSAGE,
+    owner: CURRENT_USER_ID, subject: REP_SUBJECT, message: REP_MESSAGE,
     to: [...(owner ? [{ id: uid('rr'), name: owner.name, email: owner.email }] : []), { id: uid('rr'), name: 'Marketing Team', email: `marketing@${ws.site || 'example.com'}` }],
     cc: [CURRENT_USER_ID], reports: repNewReports(wsId), createdAt: repToday().toISOString(), ...o
   };
@@ -2264,7 +2264,7 @@ function repBlocks(wsId, cfg, type) {
 // Status of a workspace's reports: none | paused | failed | scheduled.
 function repStatus(wsId) {
   const cfg = repConfig(wsId);
-  return repTypesOn(wsId, cfg).length && cfg.auto && cfg.to.length ? 'active' : 'inactive';
+  return repTypesOn(wsId, cfg).length && cfg.to.length ? 'active' : 'inactive';
 }
 // The dot carries the colour; the text stays dark for contrast, except failures (red text passes AA).
 const REP_STATUS = { active: ['Active', 'dot-green-strong', ''], inactive: ['Inactive', 'dot-grey', ''] };
@@ -2272,7 +2272,7 @@ const REP_STATUS = { active: ['Active', 'dot-green-strong', ''], inactive: ['Ina
 function repFailed(wsId) { return repHistory(wsId)[0]?.status === 'failed'; }
 // Why a workspace's reports aren't being sent.
 function repOffReason(wsId, cfg) {
-  return !repTypesOn(wsId, cfg).length ? 'No report is turned on' : !cfg.auto ? 'Automatic sending is off' : 'No recipients';
+  return !repTypesOn(wsId, cfg).length ? 'No report is turned on' : 'No recipients';
 }
 function repStatusDot(s) { const [l, d, c] = REP_STATUS[s]; return `<span class="dot-label ${c}"><span class="dot ${d}"></span>${esc(l)}</span>`; }
 function repFill(text, wsId, month) {
@@ -2612,7 +2612,7 @@ function repSummaryCard(ws, cfg) {
   const status = repStatus(ws.id), next = repNextMonth(cfg), last = repHistory(ws.id)[0], types = repTypesOn(ws.id, cfg);
   const names = repJoin(types.map(t => REP_TYPES[t].short));
   const line = !types.length ? 'No report is turned on. Turn on the SEM or SMM Report to start sending.'
-    : status === 'inactive' ? (cfg.auto ? 'Add at least one recipient to start sending.' : 'Automatic sending is off. No report will be sent until you turn it on.')
+    : status === 'inactive' ? 'Add at least one recipient to start sending.'
     : `The ${repMonthLabel(next)} ${names} ${types.length > 1 ? 'reports' : 'report'} will be sent on ${fmtDateTime(repSendDate(next))} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}.`;
   const failed = repFailed(ws.id) ? `<div class="banner banner-error rep-banner"><i data-lucide="circle-alert"></i><div class="grow"><div class="banner-title">The ${esc(repMonthLabel(last.month))} reports were not sent</div><div class="banner-text">${esc(last.reason)}</div></div><button type="button" class="banner-action" onclick="repResend('${q(last.id)}')">Try again now</button></div>` : '';
   return `${failed}<section class="card rep-summary">
@@ -2730,14 +2730,13 @@ function repDeliveryHTML(ws, cfg) {
   const agency = members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)));
   const clientMembers = members.filter(m => m.org === ws.id && m.status === 'active' && !cfg.to.some(r => r.email.toLowerCase() === m.email.toLowerCase()));
   const err = state.ui.repToErr || '';
-  return `<section class="card"><div class="card-header"><div><h2 class="h-card">Schedule</h2><div class="card-sub">The SEM and SMM Reports go out together, in one email. Changes save automatically.</div></div></div>
+  return `<section class="card"><div class="card-header"><div><h2 class="h-card">Schedule</h2><div class="card-sub">Each report turned on goes out every month, with the SEM and SMM Reports together in one email. Each report covers the previous calendar month (1st to last day).</div></div></div>
       <div class="stack-sm">
-        <label class="row rep-switch"><span class="toggle"><input type="checkbox" ${cfg.auto ? 'checked' : ''} onchange="repSet('auto', this.checked)"><span></span></span><span><b>Send automatically every month</b><span class="field-hint rep-block-line">Each report covers the previous calendar month (1st to last day).</span></span></label>
         <div class="grid-2 rep-grid">
           <div class="field"><span class="field-label">Send on</span><div class="input rep-static">The 3rd of each month</div><div class="field-hint">The same for every client, so most late conversions have come in.</div></div>
           <div class="field"><span class="field-label">Time</span><div class="input rep-static">9:00 am, Singapore time</div><div class="field-hint">The PDFs are generated just before they are sent, and the numbers in them are kept as they were then.</div></div>
         </div>
-        <div class="rep-next ${cfg.auto ? '' : 'is-off'}"><i data-lucide="calendar-clock"></i><span>${cfg.auto ? esc(types.length ? `Next: the ${repMonthLabel(next)} reports, on ${fmtDateTime(repSendDate(next))}.` : 'No report is turned on.') : 'Automatic sending is off.'}</span></div>
+        <div class="rep-next ${types.length ? '' : 'is-off'}"><i data-lucide="calendar-clock"></i><span>${esc(types.length ? `Next: the ${repMonthLabel(next)} reports, on ${fmtDateTime(repSendDate(next))}.` : 'No report is turned on.')}</span></div>
       </div></section>
     <section class="card"><div class="card-header"><div><h2 class="h-card">Recipients</h2><div class="card-sub">The client contacts who receive the PDFs, and the agency members copied in. Up to 20 recipients.</div></div></div>
       <div class="form-section-title rep-first">To</div>
@@ -2941,15 +2940,15 @@ ${outline(type)}`, sources + (type === 'smm' ? connection : ''));
     'agency-reports': spec('Reports — Client Reports (Agency)', 'Every client workspace the AM can see, with the state of its monthly reports, so nothing is missed: which clients have no reports, which are paused and which failed last month.', `
 - **KPI cards:** count of workspaces that are Active, Inactive, and whose last report failed.
 - **Table:** Client Workspace, Linked (logos of the linked sources, or "Nothing linked"), Status, Reports (SEM / SMM chips for the reports turned on), Next Send (month and send date and time), Last Sent (month, sent date or Failed). Default sort: status (failed first). Search by name, 10 per page.
-- **Statuses:** Active (green: a report is on, automatic sending is on and there is at least 1 recipient) · Inactive (grey), with the reason underneath: No report is turned on / Automatic sending is off / No recipients. A failed latest email shows "Last report failed" in red under the status. Inactive workspaces stay in the list, so the AM can see which clients still need a report.
+- **Statuses:** Active (green: a report is on and there is at least 1 recipient) · Inactive (grey), with the reason underneath: No report is turned on / No recipients. A failed latest email shows "Last report failed" in red under the status. Inactive workspaces stay in the list, so the AM can see which clients still need a report.
 - Selecting a row opens that workspace's Reports page.`),
     'client-reports-report': report('sem'),
     'client-reports-sem': report('sem'),
     'client-reports-smm': report('smm'),
-    'client-reports-delivery': spec('Reports › Schedule & Recipients (Client workspace, agency only)', 'When the reports are sent automatically, who receives them and what the email says. Changes save as they are made.', `
+    'client-reports-delivery': spec('Reports › Schedule & Recipients (Client workspace, agency only)', 'When the reports are sent, who receives them and what the email says. Changes save as they are made.', `
 ${summary}
 - **One email for both reports:** the SEM and SMM Reports turned on are attached to the same monthly email.
-- **Schedule:** "Send automatically every month" on/off. **Send on** (the 3rd of each month) and **Time** (9:00 am Singapore time) are shown but not configurable: the same for every client, so most late conversions have come in. Each report covers the previous calendar month. The PDFs are made just before sending and their numbers are frozen.
+- **Schedule:** no on/off switch here: each report turned on (SEM / SMM tabs) is sent every month. **Send on** (the 3rd of each month) and **Time** (9:00 am Singapore time) are shown but not configurable: the same for every client, so most late conversions have come in. Each report covers the previous calendar month. The PDFs are made just before sending and their numbers are frozen.
 - **Recipients — To:** client contacts (name optional, email required, valid and not duplicated), up to 20; or add a member of the workspace. Without recipients nothing is sent and the status is Inactive.
 - **Recipients — CC:** agency members assigned to the workspace.
 - **Email:** account manager (cover "Prepared by" and reply-to), subject and message with {client}, {month} and {am} placeholders and a live subject preview; attachments \`{Client}_SEM-Report_{YYYY-MM}.pdf\` and \`{Client}_SMM-Report_{YYYY-MM}.pdf\`. Sent from a Galaxis no-reply address.
