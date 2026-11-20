@@ -6,7 +6,8 @@ const CURRENT_USER_ID = 'm-a1';
 // disabled: shown for context only, not part of this prototype.
 const NAV_ITEMS = [
   { page: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard', disabled: true },
-  { page: 'reports', label: 'Reports', icon: 'file-chart-column' },
+  // agencyOnly: client users never see the page, so inside a client workspace it is tagged "Agency only".
+  { page: 'reports', label: 'Reports', icon: 'file-chart-column', agencyOnly: true },
   { page: 'organisation', label: 'Organisation', icon: 'building-2', disabled: true },
   { page: 'team', label: 'Team & Access', icon: 'users', disabled: true },
   // In the agency workspace the page is called Ad Accounts, with its own icon (blocks means Integrations).
@@ -21,7 +22,7 @@ function renderShell() {
 function renderSidebar() {
   const nav = NAV_ITEMS.map(n => ({ ...n, label: isAgency() && n.agencyLabel ? n.agencyLabel : n.label, icon: isAgency() && n.agencyIcon ? n.agencyIcon : n.icon })).map(n => n.disabled
     ? `<button type="button" class="nav-item is-disabled" disabled title="${esc(n.label)}: not part of this prototype"><i data-lucide="${n.icon}"></i><span>${esc(n.label)}</span></button>`
-    : `<button type="button" class="nav-item ${state.page === n.page ? 'active' : ''}" onclick="navigate('${n.page}')" title="${esc(n.label)}"><i data-lucide="${n.icon}"></i><span>${esc(n.label)}</span></button>`).join('');
+    : `<button type="button" class="nav-item ${state.page === n.page ? 'active' : ''}" onclick="navigate('${n.page}')" title="${esc(n.label)}${n.agencyOnly && !isAgency() ? ': agency only, client users can’t see this page' : ''}"><i data-lucide="${n.icon}"></i><span>${esc(n.label)}</span>${n.agencyOnly && !isAgency() ? '<span class="nav-tag"><i data-lucide="eye-off"></i>Agency only</span>' : ''}</button>`).join('');
   document.getElementById('sidebar').innerHTML = `
     <div class="sidebar-logo">g<span class="logo-text">alaxis</span></div>
     <nav class="sidebar-nav" aria-label="Main">${nav}</nav>

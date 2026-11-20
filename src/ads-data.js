@@ -419,7 +419,9 @@ function adsPfData(wsId, p, days) {
 }
 // ---------- Columns ----------
 // t: status | text | budget | url | qs | money | money2 | int | pct | dec | roas. levels: where the column exists natively.
-const ADS_PF_FMT = { money: v => fmtMoney(v), money2: v => fmtMoney(v, 2), int: v => fmtNum(Math.round(v)), pct: v => fmtPct(v), dec: v => Number(v || 0).toFixed(2), roas: v => `${Number(v || 0).toFixed(2)}x` };
+// secs: "14.2s". dur: "3h 25m", "12m 5s" or "45s".
+function adsDur(v) { const t = Math.round(v || 0), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60; return h ? `${fmtNum(h)}h ${m}m` : m ? `${m}m ${sec}s` : `${sec}s`; }
+const ADS_PF_FMT = { secs: v => `${Number(v || 0).toFixed(1)}s`, dur: adsDur, money: v => fmtMoney(v), money2: v => fmtMoney(v, 2), int: v => fmtNum(Math.round(v)), pct: v => fmtPct(v), dec: v => Number(v || 0).toFixed(2), roas: v => `${Number(v || 0).toFixed(2)}x` };
 function adsPfCol(key, group, label, t, tip, o = {}) { return { key, group, label, t, tip, ...o }; }
 const ADS_PF_NOT_KW = ['campaign', 'adgroup', 'ad'];
 const ADS_PF_COLS = {

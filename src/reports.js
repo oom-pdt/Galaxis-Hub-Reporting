@@ -65,6 +65,9 @@ const REP_ORG_COLS = {
     adsPfCol('saves', 'post', 'Saves', 'int', 'How many times the post was saved.'),
     adsPfCol('engagements', 'post', 'Interactions', 'int', 'Likes, comments, shares and saves.'),
     adsPfCol('engRate', 'post', 'Engagement rate', 'pct', 'Interactions divided by accounts reached.', { needs: 'reach' }),
+    // Reels only (ig_reels_avg_watch_time, ig_reels_video_view_total_time); other posts show "—".
+    adsPfCol('avgWatch', 'post', 'Reels avg. watch time', 'secs', 'Average time people spent watching the reel, including replays.', { needs: 'reelPlays' }),
+    adsPfCol('totalWatch', 'post', 'Reels total watch time', 'dur', 'Total time people spent watching the reel, including replays.', { needs: 'reelPlays' }),
     adsPfCol('followers', 'account', 'Followers', 'int', 'Followers on the last day of the month.', { levels: ['account'] }),
     adsPfCol('newFollows', 'account', 'New follows', 'int', 'Accounts that followed during the month.', { levels: ['account'] }),
     adsPfCol('profileVisits', 'account', 'Profile visits', 'int', 'Visits to the Instagram profile during the month.', { levels: ['account'] }),
@@ -97,7 +100,8 @@ const REP_DIMS = {
 // Defaults for a new client are general: the summary, all-campaign and Search sections are on (every SEM client runs Search); sections and charts marked
 // hidden (campaign types, detail tables) start off, for the AM to turn on where they apply.
 // =====================================================================
-function repT(id, platform, category, rows, title, cols, o = {}) { return { id, kind: 'table', platform, category, rows, title, cols, limit: o.limit || 0 }; }
+// off: columns that start off, for the AM to turn on.
+function repT(id, platform, category, rows, title, cols, o = {}) { return { id, kind: 'table', platform, category, rows, title, cols, limit: o.limit || 0, off: o.off }; }
 function repSortKey(p, cols) { const num = k => !['text', 'status', 'tbd'].includes(repCol(p, k)?.t); return cols.find(num) || 'impressions'; }
 function repC(id, chart, platform, title, o = {}) { return { id, kind: 'chart', chart, platform, category: 'all', title, ...o }; }
 // The same optional daily charts in every campaign-type section. hidden: off until the AM turns it on. Meta has no
@@ -153,11 +157,11 @@ const REP_TYPES = {
     { id: 'fbPosts', title: 'Facebook Posts', source: 'facebook', blocks: [
       repT('f-posts', 'facebook', 'all', 'post', 'Posts', ['views', 'viewers', 'reactions', 'comments', 'shares', 'engagements', 'engRate'])] },
     { id: 'instagram', title: 'Instagram', note: 'Your Instagram account this month. Stories are not included, as Instagram only keeps their results for 24 hours.', source: 'instagram', blocks: [
-      repC('i-kpis', 'summary', 'instagram', 'Summary cards', { metrics: ['followers', 'newFollows', 'posts', 'views', 'reach', 'likes', 'comments', 'shares', 'saves', 'engagements', 'engRate', 'profileVisits'], off: ['likes', 'comments', 'shares', 'engRate'] }),
+      repC('i-kpis', 'summary', 'instagram', 'Summary cards', { metrics: ['followers', 'newFollows', 'posts', 'views', 'reach', 'likes', 'comments', 'shares', 'saves', 'engagements', 'engRate', 'profileVisits', 'avgWatch', 'totalWatch'], off: ['likes', 'comments', 'shares', 'engRate', 'avgWatch', 'totalWatch'] }),
       repC('i-fol', 'followers', 'instagram', 'Followers over time'), repC('i-fol-m', 'followersMonth', 'instagram', 'Followers this month'),
       repC('i-demo', 'demo', 'instagram', 'Audience by age and gender', { metric: 'reach' })] },
     { id: 'igPosts', title: 'Instagram Posts', source: 'instagram', blocks: [
-      repT('i-posts', 'instagram', 'all', 'post', 'Posts and reels', ['views', 'reach', 'likes', 'comments', 'shares', 'saves', 'engagements', 'engRate'])] },
+      repT('i-posts', 'instagram', 'all', 'post', 'Posts and reels', ['views', 'reach', 'likes', 'comments', 'shares', 'saves', 'engagements', 'engRate', 'avgWatch', 'totalWatch'], { off: ['avgWatch', 'totalWatch'] })] },
     { id: 'metaOverview', title: 'Meta Ads', note: 'Your paid Facebook and Instagram campaigns this month.', source: 'meta', blocks: [
       repC('m-kpis', 'summary', 'meta', 'Summary cards', { metrics: ['reach', 'impressions', 'freq', 'clicks', 'ctr', 'cpc', 'spend'], off: ['freq', 'cpc'] }),
       repC('m-trend', 'trend', 'meta', 'Impressions and link clicks by day', { metric: 'impressions', metric2: 'clicks' }),
@@ -256,7 +260,7 @@ function repPosts(wsId, p, month) {
       const link = p === 'facebook' ? `https://www.facebook.com/${acct ? acct.id : '0'}/posts/${adsHash(code)}` : `https://www.instagram.com/${type === 'Reel' ? 'reel' : 'p'}/C${code}/`;
       return { id: `${wsId}:${p}:${month}:${i}`, level: 'post', name: caption, caption, date: `${month}-${String(day).padStart(2, '0')}`, day, campType: type,
         format: video ? 'Video' : type === 'Carousel' ? 'Carousel' : 'Image', views, viewers: reach, reach, reactions: likes, likes, comments, shares, saves, engagements,
-        engRate: reach ? engagements / reach * 100 : 0, link, impressions: views };
+        engRate: reach ? engagements / reach * 100 : 0, link, impressions: views, ...repReelWatch(`${wsId}:${p}:${month}:${i}`, type, views) };
     }).sort((a, b) => a.day - b.day);
   });
 }
@@ -275,6 +279,12 @@ function repFollowerHistory(wsId, p) {
     }
     return out;
   });
+}
+// Watch time of a reel (mock; on its own random stream). reelPlays: the reel's views, so totals can average it.
+function repReelWatch(id, type, views) {
+  if (type !== 'Reel') return {};
+  const avgWatch = 4 + adsRng(`${id}:watch`)() * 20;
+  return { reelPlays: views, avgWatch, totalWatch: avgWatch * views };
 }
 // Followers through the month.
 function repFollowers(wsId, p, month) {
@@ -310,6 +320,7 @@ function repTotals(wsId, p, month, category) {
     o.engRate = o.reach ? o.engagements / o.reach * 100 : 0;
     o.followers = fol[fol.length - 1].value; o.newFollows = Math.round((fol[fol.length - 1].value - fol[0].value) * 1.25);
     o.posts = posts.length; o.profileVisits = Math.round(o.reach * 0.04);
+    o.reelPlays = sum('reelPlays'); o.totalWatch = sum('totalWatch'); o.avgWatch = o.reelPlays ? o.totalWatch / o.reelPlays : 0;
     return o;
   });
 }
@@ -712,7 +723,8 @@ function repTablePages(wsId, b, month, withHead) {
     return c.needs && !r[c.needs] ? '—' : esc(ADS_PF_FMT[c.t](r[c.key]));
   };
   const head = `<thead><tr><th>${esc(repCap(noun[0]))}</th>${cols.map(c => `<th class="${c.t === 'text' || c.t === 'status' ? '' : 'num'}">${esc(c.label)}</th>`).join('')}</tr></thead>`;
-  const total = b.rows === 'convType' ? { conversions: main.reduce((n, r) => n + r.conversions, 0) } : repIsAds(p) ? adsPfSum(all) : Object.fromEntries(cols.map(c => [c.key, all.reduce((s, r) => s + (r[c.key] || 0), 0)]));
+  const total = b.rows === 'convType' ? { conversions: main.reduce((n, r) => n + r.conversions, 0) } : repIsAds(p) ? adsPfSum(all) : Object.fromEntries([...cols.map(c => c.key), 'reelPlays', 'totalWatch'].map(k => [k, all.reduce((s, r) => s + (r[k] || 0), 0)]));
+  if (total.reelPlays) total.avgWatch = total.totalWatch / total.reelPlays;   // averaged over every reel's views, not added up
   const per = repRowsPerPage(b), chunks = [];
   // A page never starts with a conversion action: it moves to the next page with its campaign.
   for (let i = 0, n = withHead ? Math.max(3, per - (per > 10 ? 3 : 1)) : per; i < rows.length; n = per) {
@@ -1191,6 +1203,7 @@ ${summary}
 2. Each section turned on, in order: **its heading (and note) starts a new page**; **charts two to a page**; **each table starts on a new page** (or under its heading), with as many rows per page as fit (14 for campaigns and ad groups; 12 for keywords and search terms; 8 for image and video ads, asset groups and Meta ads; 7 for posts; 5 for search ads, which show their text), "continued" on later pages, and a Total row at the end. Subtitle: "Top 10 of 34 keywords that ran in October 2026 · Sorted by Clicks, highest first".
 - **Daily charts (Google Ads and Meta Ads) cover the whole campaign:** from the earliest start date of the campaigns in the chart that ran in the report month (Google \`campaign.start_date\`, Meta \`start_time\`), capped at two months before the report month, to the month's last day. The report month is shaded and labelled; ticks on the 1st and 15th. **Followers** (Facebook and Instagram) has two charts: **Followers over time** covers the whole time the agency has managed the client's social media (service start date, up to 12 months) to the end of the report month, with the report month shaded; **Followers this month** covers the report month only, with a dot and line on each day a post went live, so follower changes can be read against posting days (over a long period the post markers are too dense to read).
 - **Conversion type breakdown** (last SEM section, as in the sample): each campaign with conversions, most first, with its conversion actions (Google \`segments.conversion_action_name\`) indented underneath; a Total row.
+- **Reels watch time (Instagram):** Reels avg. watch time and Reels total watch time, as optional summary cards and Posts and reels table columns (off by default). Reels only (\`ig_reels_avg_watch_time\`, \`ig_reels_video_view_total_time\`); other posts show "—". The average is weighted by each reel's views.
 - **Wide tables are never split:** type gets smaller as columns are added (9+ columns, 12+ columns, 16+ columns such as YouTube); readers can zoom into the PDF.
 - **Campaign-type tables** (Search, Performance Max, Demand Gen, Display, YouTube, App install; Meta Awareness and Traffic) offer the columns in the "Google & Meta Ads Metrics - Monthly Report" sheet, reordered to follow the funnel: reach and impressions, clicks, cost, video, conversions, value, impression share. Search ad groups, keywords, search terms and search ads use the Search columns that exist at their level. **Meta Engagement, Lead generation and Sales** have five placeholder columns, "Mindy TBD 🙇🏻‍♀️", until their columns are decided; they print as "—".
 - **Rows:** ads show a thumbnail, name, campaign › ad group and a link; search ads show their headlines, URL and description; posts show the image, the first 3 lines of the caption, the date, the type and a **View post** link.

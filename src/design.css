@@ -91,6 +91,9 @@ svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
 .nav-item:hover { background: var(--grey-light); color: var(--text-secondary); text-decoration: none; }
 .nav-item.active { color: var(--primary); }
 
+/* "Agency only" tag on a nav item inside a client workspace: client users can't see that page. */
+.nav-tag { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: var(--r-pill); background: var(--grey-light); color: var(--text-secondary); font-size: 10px; letter-spacing: .2px; white-space: nowrap; }
+.nav-tag svg.lucide { width: 11px; height: 11px; }
 /* Pages outside this prototype: listed for context, not clickable. */
 .nav-item.is-disabled, .nav-item.is-disabled:hover { color: var(--text-muted); opacity: .45; background: none; cursor: not-allowed; }
 .sidebar-note { margin-top: auto; padding: 12px 4px 0; border-top: 1px solid var(--border); font-size: 11px; line-height: 16px; color: var(--text-secondary); }
@@ -364,7 +367,7 @@ svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
 }
 @media (max-width: 960px) {
   :root { --sidebar-w: 72px; }
-  .nav-item span, .sidebar-logo .logo-text, .sidebar-note { display: none; }
+  .nav-item span, .sidebar-logo .logo-text, .sidebar-note, .nav-tag { display: none; }
   .main { padding: 24px 20px 48px; }
   .grid-2{ grid-template-columns: 1fr; }
   .page-header { flex-direction: column; }
