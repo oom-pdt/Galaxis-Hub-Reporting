@@ -1,18 +1,16 @@
-// Galaxis Hub demo — app shell: sidebar navigation, page header and workspace switcher.
+// Galaxis Hub Reporting — app shell: sidebar navigation, page header and workspace switcher.
+// The prototype covers Monthly Reports only: the other Galaxis pages are listed in the sidebar for context, disabled.
 
 const CURRENT_USER_ID = 'm-a1';
 
+// disabled: shown for context only, not part of this prototype.
 const NAV_ITEMS = [
-  { page: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
-  // Monthly PDF reports: agency only (hidden in Client user view).
-  { page: 'reports', label: 'Reports', icon: 'file-chart-column', show: () => viewerIsAgency() },
-  { page: 'organisation', label: 'Organisation', icon: 'building-2' },
-  { page: 'team', label: 'Team & Access', icon: 'users' },
-  // Version 1 has no Integrations page (agency or client). In the agency workspace the page is called Ad Accounts,
-  // with its own icon (blocks means Integrations).
-  { page: 'integrations', label: 'Integrations', agencyLabel: 'Ad Accounts', agencyIcon: 'cable', icon: 'blocks', show: () => !isV1() },
-  // Not in Figma: Leads appears only inside a client workspace with an active CRM (V2 feature).
-  { page: 'leads', label: 'Leads', icon: 'contact', show: () => !isAgency() && !!activeCrm(state.ctx) }
+  { page: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard', disabled: true },
+  { page: 'reports', label: 'Reports', icon: 'file-chart-column' },
+  { page: 'organisation', label: 'Organisation', icon: 'building-2', disabled: true },
+  { page: 'team', label: 'Team & Access', icon: 'users', disabled: true },
+  // In the agency workspace the page is called Ad Accounts, with its own icon (blocks means Integrations).
+  { page: 'integrations', label: 'Integrations', agencyLabel: 'Ad Accounts', agencyIcon: 'cable', icon: 'blocks', disabled: true }
 ];
 
 function renderShell() {
@@ -21,13 +19,13 @@ function renderShell() {
 }
 
 function renderSidebar() {
-  const nav = NAV_ITEMS.filter(n => !n.show || n.show()).map(n => ({ ...n, label: isAgency() && n.agencyLabel ? n.agencyLabel : n.label, icon: isAgency() && n.agencyIcon ? n.agencyIcon : n.icon })).map(n => `
-    <button type="button" class="nav-item ${state.page === n.page || (n.page === 'leads' && state.page === 'lead') || (n.page === 'integrations' && state.page === 'integration-setup') ? 'active' : ''}" onclick="navigate('${n.page}')" title="${esc(n.label)}">
-      <i data-lucide="${n.icon}"></i><span>${esc(n.label)}</span>
-    </button>`).join('');
+  const nav = NAV_ITEMS.map(n => ({ ...n, label: isAgency() && n.agencyLabel ? n.agencyLabel : n.label, icon: isAgency() && n.agencyIcon ? n.agencyIcon : n.icon })).map(n => n.disabled
+    ? `<button type="button" class="nav-item is-disabled" disabled title="${esc(n.label)}: not part of this prototype"><i data-lucide="${n.icon}"></i><span>${esc(n.label)}</span></button>`
+    : `<button type="button" class="nav-item ${state.page === n.page ? 'active' : ''}" onclick="navigate('${n.page}')" title="${esc(n.label)}"><i data-lucide="${n.icon}"></i><span>${esc(n.label)}</span></button>`).join('');
   document.getElementById('sidebar').innerHTML = `
     <div class="sidebar-logo">g<span class="logo-text">alaxis</span></div>
-    <nav class="sidebar-nav" aria-label="Main">${nav}</nav>`;
+    <nav class="sidebar-nav" aria-label="Main">${nav}</nav>
+    <div class="sidebar-note">Reports prototype: the other pages are not included.</div>`;
 }
 
 function renderHeader() {
@@ -46,7 +44,6 @@ function renderHeader() {
         <button type="button" class="ws-trigger" data-popover-trigger onclick="toggleWsPanel(event)" aria-haspopup="listbox">
           <span class="dot ${ws ? 'dot-green' : 'dot-blue'}" style="width:10px;height:10px"></span>
           <span>${esc(ws ? ws.name : 'My Workspace')}</span>
-          ${ws && state.persona === 'client' ? '<span class="chip" style="height:18px">Client view</span>' : ''}
           <i data-lucide="chevron-down" class="chev"></i>
         </button>
         <div class="ws-panel" id="ws-panel" onclick="event.stopPropagation()"></div>
@@ -62,19 +59,14 @@ function renderHeader() {
     </div>`;
 }
 
-// ---------- Workspace switcher (V1 behaviour, Figma "Workspace Dropdown") ----------
+// ---------- Workspace switcher (Figma "Workspace Dropdown") ----------
 state.ui.wsSearch = '';
 
-// Workspaces the signed-in agency user can see. V1 spec: assignment decides what appears in the switcher.
+// Workspaces the signed-in agency user can see: assignment decides what appears in the switcher.
 function visibleWorkspaces() {
   const me = memberById(CURRENT_USER_ID);
   const all = activeWorkspaces();
   return me.workspaces.includes('*') ? all : all.filter(w => me.workspaces.includes(w.id));
-}
-
-function wsActiveCampaigns(ws) {
-  if (typeof workspaceCampaignCount === 'function') return workspaceCampaignCount(ws.id);
-  return wsAdAccounts(ws.id).length ? 5 + (ws.seed * 7) % 36 : 0;
 }
 
 function toggleWsPanel(ev) {
@@ -102,14 +94,14 @@ function renderWsList() {
     <div class="ws-section-label">Agency</div>
     <button type="button" class="ws-option ${isAgency() ? 'current' : ''}" onclick="pickWorkspace(null)">
       <span class="avatar" style="background:var(--primary);color:#fff"><i data-lucide="building-2"></i></span>
-      <span><div class="ws-name">My Workspace</div><div class="ws-meta">Agency Dashboard · ${activeWorkspaces().length} Client Workspaces</div></span>
+      <span><div class="ws-name">My Workspace</div><div class="ws-meta">Agency · ${activeWorkspaces().length} Client Workspaces</div></span>
       ${isAgency() ? tick : ''}
     </button>` : '';
   const rows = list.map(w => {
-    const plats = wsPlatforms(w.id).length;
+    const n = wsPlatforms(w.id).length + wsSocial(w.id).length;
     return `<button type="button" class="ws-option ${state.ctx === w.id ? 'current' : ''}" onclick="pickWorkspace('${w.id}')">
       <span class="avatar">${esc(initials(w.name))}</span>
-      <span><div class="ws-name">${esc(w.name)}</div><div class="ws-meta">${wsActiveCampaigns(w)} Active Campaigns • ${plats} Platform${plats === 1 ? '' : 's'}</div></span>
+      <span><div class="ws-name">${esc(w.name)}</div><div class="ws-meta">${n} linked account${n === 1 ? '' : 's'}</div></span>
       ${state.ctx === w.id ? tick : ''}
     </button>`;
   }).join('');
@@ -124,8 +116,8 @@ function pickWorkspace(id) {
   switchWorkspace(id);
 }
 
-// Jump into a client workspace from anywhere (e.g. "Go to workspace" links).
-function openWorkspace(id, page = 'dashboard', params = {}) {
+// Jump into a client workspace from anywhere (e.g. a row of the agency's client list).
+function openWorkspace(id, page = 'reports', params = {}) {
   state.ctx = id;
   navigate(page, params);
 }

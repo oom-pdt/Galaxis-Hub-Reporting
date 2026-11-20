@@ -19,18 +19,9 @@ function renderDevBar() {
   const options = groups.map(g => `<optgroup label="${g}">${devScreens.filter(s => s.group === g).map(s =>
     `<option value="${s.key}" ${s.key === key ? 'selected' : ''}>${esc(s.label)}</option>`).join('')}</optgroup>`).join('');
 
-  const toggles = [];
-  // Version 1 scope applies to every screen, so it is always the first toggle.
-  toggles.push({ label: 'Version 1', active: isV1(), run: devToggleV1 });
   // Every option is one button: on/off toggles (highlighted when on), cycle buttons for 3+ states
   // ({ cycle: true }, label "Name: value"), and one-shot actions ({ action: true }).
-  if (!isAgency()) {
-    toggles.push('sep');
-    toggles.push({ label: 'Client user view', active: state.persona === 'client', run: () => { state.persona = state.persona === 'client' ? 'agency' : 'client'; if (screens[state.page]?.agencyOnly && !viewerIsAgency()) navigate('dashboard'); else render(); } });
-  }
-  const own = devToggleRegistry[key] ? devToggleRegistry[key]() : [];
-  if (own.length && toggles.length) toggles.push('sep');
-  toggles.push(...own);
+  const toggles = devToggleRegistry[key] ? devToggleRegistry[key]() : [];
   window.__devToggles = toggles;
 
   document.getElementById('devbar').innerHTML = `
@@ -46,7 +37,7 @@ function renderDevBar() {
 // ---------- Toggle states in screen links ----------
 // A screen link carries its States toggles as ?state=<slug>,…: a slug for an on/off toggle turned on, <slug>-off for one
 // turned off, and the full slug of a cycle button's current label ("seo-status-critical"). Only toggles that differ
-// from a fresh load are listed, so each state has one link. Version 1 and Client user view have their own parameters.
+// from a fresh load are listed, so each state has one link.
 const devToggleDefaults = {};
 // Flags a viewer's own saved preferences can change at start-up; links measure toggles against these values instead.
 const devLinkBaseline = {};
@@ -79,8 +70,7 @@ function devToggleDefault(t) {
   return devToggleDefaults[k];
 }
 function devToggleQuery() {
-  // The role editor's cycle button is the route's own edit= parameter.
-  return devScreenToggles().filter(t => !(t.cycle && state.params.edit)).map(t => {
+  return devScreenToggles().map(t => {
     const def = devToggleDefault(t);
     if (t.cycle) return devSlug(t.label) === def ? null : devSlug(t.label);
     return !!t.active === def ? null : `${devSlug(t.label)}${t.active ? '' : '-off'}`;
@@ -101,9 +91,3 @@ function devApplyToggleQuery(value) {
   }
 }
 
-// Turning Version 1 on leaves pages it hides (Integrations, Leads) for the dashboard.
-function devToggleV1() {
-  state.flags.v1 = !state.flags.v1;
-  if (isV1() && V1_HIDDEN_PAGES.includes(state.page)) navigate('dashboard');
-  else render();
-}

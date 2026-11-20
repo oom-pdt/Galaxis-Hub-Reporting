@@ -2,13 +2,14 @@
 
 A copy of the [Galaxis Hub Demo](https://github.com/oom-pdt/Hub-V2-Demo) (from commit 4cd33af), used to prototype reporting.
 
-A clickable prototype of the Galaxis Hub, built from three sources:
+A clickable prototype of **Monthly Reports** only: account managers set up each client's monthly SEM Report (Google Ads) and SMM Report (Facebook Page, Instagram and Meta Ads), choose their sections and columns, schedule them and see what was sent. Agency view only. The other Galaxis pages appear in the sidebar for context but are disabled.
 
-- **Galaxis Hub v1** (`../Hub-V1`). Every v1 feature is included.
-- **Galaxis Hub v2** (`../Galaxis Hub v2 Prototype.html`). Only the features v1 lacked are included: the integrations hub, the CRM / ad-only modes with ROAS, the attribution model selector, and Leads with Lead Profile.
-- **Galaxis Product Design** (Figma, page "🚧 [WIP] Product Hub"). This sets the information architecture (Dashboard / Organisation / Team & Access / Integrations) and the UI.
+Two client workspaces:
 
-All people, companies, emails, numbers and billing figures are placeholders.
+- **Visual Studio:** Google Ads, Meta Ads, Facebook Page and Instagram all linked, with every kind of campaign running and reports already set up and sent.
+- **TechNova Solutions:** only Google Ads linked, and both reports still off.
+
+All people, companies, emails and numbers are placeholders.
 
 ## Running it
 
@@ -33,25 +34,21 @@ This writes `standalone.html` and `dist/index.html`, with every stylesheet and s
 
 The dark bar at the top has two parts:
 
-- **Screen selector:** jump to any screen in the agency context ("My Workspace") or a client workspace.
-- **States:** scenario toggles for the current screen, such as alerts on/off, ad-only vs CRM connected, integration error states, or viewing as an Agency Admin vs a Client User.
+- **Screen selector:** jump to any Reports screen in the agency context ("My Workspace") or a client workspace.
+- **States:** scenario toggles for the current screen: Not set up, and Last report failed.
 
 ## Code layout
 
 | File | Purpose |
 |---|---|
 | `src/design.css` | Figma tokens (colours, fonts, radii, shadows) and shared components |
-| `src/data.js` | Shared mock entities: workspaces, ad accounts, products, members, teams, roles |
-| `src/core.js` | State, routing (`navigate`, `switchWorkspace`), formatting, modals, drawer, menus, sorting, pagination, date filter |
-| `src/shell.js` | Sidebar, page header, workspace switcher |
+| `src/data.js` | Mock entities: the agency, two client workspaces, their linked ad and social accounts, members |
+| `src/core.js` | State, routing (`navigate`, `switchWorkspace`), formatting, modals, menus, sorting, pagination |
+| `src/shell.js` | Sidebar (Reports only; other pages disabled), page header, workspace switcher |
 | `src/devtools.js` | Developer toolbar |
-| `src/specs.js` | Spec registry: each module adds its screen specs here as documentation (not shown in the UI) |
-| `src/dashboard.js` | Agency and client dashboards |
-| `src/organisation.js` | Business Information, Billing, Brand Identity |
-| `src/team-access.js` | Members, Teams, Roles & Permissions, Client Organisation, Agency |
-| `src/integrations.js` | Product integrations, ad account linking, master tokens |
-| `src/leads.js` | Leads list and Lead Profile |
-| `src/reports.js` | Monthly Reports (agency only): report content, schedule and recipients, sent reports, PDF preview and download |
+| `src/specs.js` | Spec registry: the Reports module adds its screen specs here as documentation (not shown in the UI) |
+| `src/ads-data.js` | Mock Google Ads and Meta Ads data: campaigns, ad groups, ads and keywords, and the platform columns |
+| `src/reports.js` | Monthly Reports: the SEM and SMM Reports' fixed sections, each client's section, chart, summary card and column choices, schedule and recipients, sent reports, PDF preview with sample data, and download |
 | `src/app.js` | Start-up |
 
-Each module is a plain script loaded in the order listed in `index.html`, so all modules share one set of globals. Each module prefixes its globals (`dash`, `org`, `team`, `integ`, `lead`, `rep`) to avoid name clashes, and keeps any styles of its own in its matching `.css` file.
+Each module is a plain script loaded in the order listed in `index.html`, so all modules share one set of globals. Each module prefixes its globals (`ads`, `rep`) to avoid name clashes, and keeps any styles of its own in its matching `.css` file.
