@@ -59,6 +59,11 @@ const permissionCatalogue = [
     ] },
     { name: 'Ad Accounts', perms: [
       { id: 'perm-ad-map', title: 'Link & Unlink Ad Accounts', desc: 'Link Google and Meta ad accounts to client workspaces, or unlink them.' }
+    ] },
+    { name: 'Monthly Reports', perms: [
+      { id: 'perm-report-view', title: 'View Reports', desc: 'View a client’s monthly report set-up and the reports already sent.' },
+      { id: 'perm-report-edit', title: 'Set Up Reports', desc: 'Choose the tables and charts in a client’s monthly report, its schedule and its recipients.' },
+      { id: 'perm-report-send', title: 'Send Reports', desc: 'Send a test report, or resend a past report to its recipients.' }
     ] }
   ] },
   // Figma lists "Settings 0/5" with no detail frame: [PLACEHOLDER] permissions until design confirms them.
@@ -88,10 +93,10 @@ function teamRoleHas(role, permId) { return !!role && (role.perms.includes('*') 
 (function teamSeedRolePerms() {
   const view = ['org.view', 'members.view', 'teams.view', 'roles.view', 'integ.view', 'integ.open'];
   const seed = {
-    'r-a-am':       [...view, 'perm-ws-view', 'perm-ws-client', 'perm-ad-map', 'perm-team-invite', 'members.edit'],
+    'r-a-am':       [...view, 'perm-ws-view', 'perm-ws-client', 'perm-ad-map', 'perm-report-view', 'perm-report-edit', 'perm-report-send', 'perm-team-invite', 'members.edit'],
     'r-a-seolead':  [...view, 'perm-ws-view', 'teams.edit', 'teams.products'],
     'r-a-pl':       [...view, 'perm-ws-view', 'perm-ws-client', 'perm-team-invite', 'members.edit', 'teams.create', 'teams.edit', 'teams.products'],
-    'r-a-analyst':  ['org.view', 'members.view', 'integ.view', 'integ.open', 'perm-ws-view', 'perm-ws-client'],
+    'r-a-analyst':  ['org.view', 'members.view', 'integ.view', 'integ.open', 'perm-ws-view', 'perm-ws-client', 'perm-report-view'],
     'r-a-viewer':   ['org.view', 'perm-ws-view'],
     'r-c-admin':    teamAllPermIds('client').filter(id => !['roles.delete', 'settings.billing', 'settings.security'].includes(id)),
     'r-c-hom':      [...view, 'org.edit', 'org.brand', 'perm-team-invite', 'members.edit', 'teams.create', 'teams.edit', 'teams.products', 'integ.connect', 'integ.activate'],

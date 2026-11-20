@@ -26,7 +26,7 @@ function renderDevBar() {
   // ({ cycle: true }, label "Name: value"), and one-shot actions ({ action: true }).
   if (!isAgency()) {
     toggles.push('sep');
-    toggles.push({ label: 'Client user view', active: state.persona === 'client', run: () => { state.persona = state.persona === 'client' ? 'agency' : 'client'; render(); } });
+    toggles.push({ label: 'Client user view', active: state.persona === 'client', run: () => { state.persona = state.persona === 'client' ? 'agency' : 'client'; if (screens[state.page]?.agencyOnly && !viewerIsAgency()) navigate('dashboard'); else render(); } });
   }
   const own = devToggleRegistry[key] ? devToggleRegistry[key]() : [];
   if (own.length && toggles.length) toggles.push('sep');

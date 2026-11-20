@@ -155,6 +155,7 @@ function navigate(page, params = {}) {
   const ctx = isAgency() ? 'agency' : 'client';
   if (def.contexts && !def.contexts.includes(ctx)) page = 'dashboard';
   if (isV1() && V1_HIDDEN_PAGES.includes(page)) page = 'dashboard';
+  if (screens[page].agencyOnly && !viewerIsAgency()) page = 'dashboard';
   state.page = page;
   state.params = params;
   closeAllPopovers();

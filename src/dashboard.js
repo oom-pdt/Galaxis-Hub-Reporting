@@ -6,8 +6,8 @@
 // Mock performance data — generated per workspace, deterministic from ws.seed
 // =====================================================================
 const DASH_CAMPAIGNS = {
-  google: ['Search Campaign', 'Display Remarketing', 'Performance Max', 'Brand Search', 'YouTube Awareness'],
-  meta: ['Paid Social Campaign', 'Lead Gen - Instant Forms', 'Retargeting - Site Visitors', 'Awareness Reach', 'Advantage+ Catalogue']
+  google: ['Search Campaign', 'Display Remarketing', 'Performance Max', 'Brand Search', 'YouTube Awareness', 'Demand Gen Prospecting', 'App Installs'],
+  meta: ['Paid Social Campaign', 'Lead Gen - Instant Forms', 'Retargeting - Site Visitors', 'Awareness Reach', 'Advantage+ Catalogue', 'Page Engagement Boost', 'App Install Campaign']
 };
 const DASH_ADGROUPS = {
   google: ['Search - Brand Exact', 'Search - Non Brand Broad', 'Display - Cart Abandoners', 'Retargeting - 30D Visitors', 'In-Market Audiences', 'Competitor Terms'],
@@ -163,8 +163,7 @@ function dashSum(items) {
 }
 
 // All four levels with metrics for the date filter of `scope` ('agency' | 'client') and the current attribution model.
-function dashMetrics(wsId, scope) {
-  const days = dateRangeDays(scope);
+function dashMetrics(wsId, scope, days = dateRangeDays(scope)) {
   const model = state.ui.dashModel || 'mta';
   const plats = wsPlatforms(wsId);
   const key = `${wsId}|${days}|${model}|${plats.join(',')}`;
@@ -2022,10 +2021,10 @@ const DASH_PF_NAME_COL = { google: { campaign: 'Campaign', adgroup: 'Ad group', 
 const DASH_PF_FN = { google: 'dashPfRefreshGoogle', meta: 'dashPfRefreshMeta' };
 
 // Native attributes (derived from the campaign name, the ad format and a per-entity random stream).
-const DASH_G_CAMP_TYPE = { 'Search Campaign': 'Search', 'Brand Search': 'Search', 'Display Remarketing': 'Display', 'Performance Max': 'Performance Max', 'YouTube Awareness': 'Video' };
-const DASH_G_TYPES = ['Search', 'Display', 'Video', 'Performance Max'];
-const DASH_G_BID = { Search: ['Maximise conversions', 'Target CPA', 'Manual CPC', 'Maximise clicks'], Display: ['Target CPA', 'Maximise conversions'], Video: ['Target CPM', 'Maximum CPV'], 'Performance Max': ['Maximise conversion value', 'Target ROAS'] };
-const DASH_G_AG_TYPE = { Search: 'Search standard', Display: 'Display standard', Video: 'Video responsive', 'Performance Max': 'Asset group' };
+const DASH_G_CAMP_TYPE = { 'Search Campaign': 'Search', 'Brand Search': 'Search', 'Display Remarketing': 'Display', 'Performance Max': 'Performance Max', 'YouTube Awareness': 'Video', 'Demand Gen Prospecting': 'Demand Gen', 'App Installs': 'App' };
+const DASH_G_TYPES = ['Search', 'Display', 'Video', 'Performance Max', 'Demand Gen', 'App'];
+const DASH_G_BID = { Search: ['Maximise conversions', 'Target CPA', 'Manual CPC', 'Maximise clicks'], Display: ['Target CPA', 'Maximise conversions'], Video: ['Target CPM', 'Maximum CPV'], 'Performance Max': ['Maximise conversion value', 'Target ROAS'], 'Demand Gen': ['Maximise conversions', 'Maximise clicks'], App: ['Target CPA', 'Maximise conversions'] };
+const DASH_G_AG_TYPE = { Search: 'Search standard', Display: 'Display standard', Video: 'Video responsive', 'Performance Max': 'Asset group', 'Demand Gen': 'Demand Gen', App: 'App' };
 const DASH_G_AD_TYPE = { 'Text/Search': 'Responsive search ad', Image: 'Responsive display ad', Video: 'Video responsive ad' };
 const DASH_G_STATUS = { 'Active': 'Enabled', 'Paused': 'Paused' };
 const dashGStatus = e => e.limited ? 'Limited' : DASH_G_STATUS[e.status];
@@ -2033,9 +2032,9 @@ const DASH_G_STATUSES = ['Enabled', 'Limited', 'Paused'];
 const DASH_G_MATCH = ['Exact', 'Phrase', 'Broad'];
 // Keyword templates: {b} = brand (first word of the workspace name), {i} = industry. Placeholder terms only.
 const DASH_KW_POOL = ['{b}', '{b} singapore', '{b} {i}', '{i} singapore', '{i} services', '{i} company near me', '{i} agency', 'affordable {i}', '{i} consultation', '{i} pricing', '{b} reviews', '{i} solutions sg'];
-const DASH_M_OBJECTIVE = { 'Paid Social Campaign': 'Traffic', 'Lead Gen - Instant Forms': 'Leads', 'Retargeting - Site Visitors': 'Sales', 'Awareness Reach': 'Awareness', 'Advantage+ Catalogue': 'Sales' };
-const DASH_M_OBJECTIVES = ['Leads', 'Sales', 'Traffic', 'Awareness', 'Engagement'];
-const DASH_M_GOAL = { Leads: 'Leads', Sales: 'Conversions', Traffic: 'Landing page views', Awareness: 'Reach', Engagement: 'Post engagement' };
+const DASH_M_OBJECTIVE = { 'Paid Social Campaign': 'Traffic', 'Lead Gen - Instant Forms': 'Leads', 'Retargeting - Site Visitors': 'Sales', 'Awareness Reach': 'Awareness', 'Advantage+ Catalogue': 'Sales', 'Page Engagement Boost': 'Engagement', 'App Install Campaign': 'App promotion' };
+const DASH_M_OBJECTIVES = ['Leads', 'Sales', 'Traffic', 'Awareness', 'Engagement', 'App promotion'];
+const DASH_M_GOAL = { Leads: 'Leads', Sales: 'Conversions', Traffic: 'Landing page views', Awareness: 'Reach', Engagement: 'Post engagement', 'App promotion': 'App installs' };
 const DASH_M_DELIVERIES = ['Active', 'Learning', 'Learning limited', 'Paused'];
 const DASH_M_FORMAT = { Image: 'Single image', Video: 'Single video', Carousel: 'Carousel' };
 const DASH_M_ATTRIBUTION = '7-day click, 1-day view';
@@ -2284,9 +2283,9 @@ function dashPfKeywords(st, adgroups) {
   });
   return out;
 }
-// Every level for platform p under the client date filter and the attribution model (CRM columns).
-function dashPfData(wsId, p) {
-  const m = dashMetrics(wsId, 'client');
+// Every level for platform p under the client date filter (or `days`, e.g. a report month) and the attribution model.
+function dashPfData(wsId, p, days) {
+  const m = dashMetrics(wsId, 'client', days);
   const key = `${wsId}|${m.days}|${state.ui.dashModel || 'mta'}|${wsPlatforms(wsId).join(',')}|${p}`;
   if (dashCache.pf[key]) return dashCache.pf[key];
   const st = dashPfStatic(wsId);

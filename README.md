@@ -51,6 +51,7 @@ The dark bar at the top has two parts:
 | `src/team-access.js` | Members, Teams, Roles & Permissions, Client Organisation, Agency |
 | `src/integrations.js` | Product integrations, ad account linking, master tokens |
 | `src/leads.js` | Leads list and Lead Profile |
+| `src/reports.js` | Monthly Reports (agency only): report content, schedule and recipients, sent reports, PDF preview and download |
 | `src/app.js` | Start-up |
 
-Each module is a plain script loaded in the order listed in `index.html`, so all modules share one set of globals. Each module prefixes its globals (`dash`, `org`, `team`, `integ`, `lead`) to avoid name clashes, and keeps any styles of its own in its matching `.css` file.
+Each module is a plain script loaded in the order listed in `index.html`, so all modules share one set of globals. Each module prefixes its globals (`dash`, `org`, `team`, `integ`, `lead`, `rep`) to avoid name clashes, and keeps any styles of its own in its matching `.css` file.

@@ -4,6 +4,8 @@ const CURRENT_USER_ID = 'm-a1';
 
 const NAV_ITEMS = [
   { page: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+  // Monthly PDF reports: agency only (hidden in Client user view).
+  { page: 'reports', label: 'Reports', icon: 'file-chart-column', show: () => viewerIsAgency() },
   { page: 'organisation', label: 'Organisation', icon: 'building-2' },
   { page: 'team', label: 'Team & Access', icon: 'users' },
   // Version 1 has no Integrations page (agency or client). In the agency workspace the page is called Ad Accounts,
