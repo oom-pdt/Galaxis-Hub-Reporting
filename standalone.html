@@ -584,7 +584,28 @@ label.rep-block-title { cursor: pointer; }
 .rep-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .rep-slot-cards { flex: 0 0 auto; }
 .rep-kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.cell-sub.rep-failed-line { color: var(--error); font-weight: 700; }
+/* Sent Reports actions: previews (solid while the upcoming report waits to be sent), cancel / resume send. */
+.btn.btn-sm { height: 30px; padding: 0 12px; font-size: 12px; }
+.btn.btn-sm svg.lucide { width: 14px; height: 14px; }
+.rep-actions { display: grid; grid-template-columns: 124px 124px 138px; gap: 8px; justify-content: end; align-items: center; }
+.rep-actions .btn { width: 100%; justify-content: center; }
+.rep-actions .rep-not-ready { grid-column: 1 / 3; text-align: center; }
+.rep-not-ready { font-size: 12px; white-space: nowrap; }
+/* Status pills: dark text on a tint, with a border, so they stand out and stay readable. */
+.rep-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: var(--r-pill); border: 1px solid; font-size: 11px; font-weight: 700; letter-spacing: .4px; white-space: nowrap; }
+.rep-pill.is-sent { background: #E4F6EA; color: #1C6334; border-color: #9DD8B2; }
+.rep-pill.is-failed { background: #FDE8E8; color: #A40C0A; border-color: #F1B5B4; }
+.rep-pill.is-scheduled { background: var(--tint); color: #1A4F8F; border-color: var(--blue-light); }
+.rep-pill.is-review { background: #FFF1D6; color: #7A4300; border-color: #F2C36B; }
+.rep-pill.is-off { background: var(--grey-light); color: #555; border-color: var(--border); }
+.rep-cell-month { white-space: nowrap; }
+.rep-cell-status { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 4px; }
+.rep-upcoming-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 10px; border-radius: var(--r-pill); font-size: 11px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+.rep-upcoming-badge { background: var(--tint); color: #1A4F8F; margin-left: 8px; vertical-align: 2px; }
+/* Sent Reports: month, report tags and send time stay on one line; a failure reason wraps in a narrower column. */
+.rep-history td:nth-child(1), .rep-history td:nth-child(4) { white-space: nowrap; }
+.rep-history .rep-type-chips { flex-wrap: nowrap; }
+.rep-history .rep-reason { max-width: 240px; }
 
 </style>
 </head>
@@ -1973,7 +1994,9 @@ function repSourceList(list) { const n = list.map(p => REP_PLATFORM[p]); return 
 // =====================================================================
 // Months
 // =====================================================================
-function repToday() { return new Date(); }
+// Dev toggle "Review period": pretend it is 10:00 on the 1st of next month, between the end of the report month and
+// the send date, when AMs review the upcoming reports.
+function repToday() { const n = new Date(); return state.flags.repReview ? new Date(n.getFullYear(), n.getMonth() + 1, 1, 10, 0) : n; }
 function repMonthKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
 function repAddMonths(month, n) { const [y, m] = month.split('-').map(Number); return repMonthKey(new Date(y, m - 1 + n, 1)); }
 function repMonthDays(month) { const [y, m] = month.split('-').map(Number); return new Date(y, m, 0).getDate(); }
@@ -1989,6 +2012,11 @@ function repNextMonth(cfg) {
   const last = repLastMonth();
   return repSendDate(last) > repToday() ? last : repAddMonths(last, 1);
 }
+// The review period: the next report's month has ended but it hasn't been sent yet (1st of the month to the send on
+// the 3rd). The AM can preview the real report, change its set-up, or cancel the send. Before that the month is in progress.
+function repInReview(cfg) { return repMonthKey(repToday()) > repNextMonth(cfg); }
+// cfg.skip: the month whose send the AM cancelled.
+function repCancelled(cfg) { return cfg.skip === repNextMonth(cfg); }
 // Monday-first weekday (0–6) of a day in the month.
 function repDow(month, day) { const [y, m] = month.split('-').map(Number); return (new Date(y, m - 1, day).getDay() + 6) % 7; }
 
@@ -2262,9 +2290,13 @@ function repHistory(wsId) {
   repConfig(wsId);
   const list = repHistories[wsId] || (repHistories[wsId] = []);
   // Dev toggle "Last report failed": show the latest entry as failed.
-  if (state.flags.repFailed && list.length && list[0].status !== 'failed') return [{ ...list[0], status: 'failed', sentAt: null, reason: 'Google Ads data could not be fetched: Google returned a temporary error. Tried again 3 times over 3 days.' }, ...list.slice(1)];
+  // failedTypes: the reports that couldn't be generated (here the SEM Report, as Google Ads data couldn't be fetched).
+  if (state.flags.repFailed && list.length && list[0].status !== 'failed') return [{ ...list[0], status: 'failed', sentAt: null, failedTypes: ['sem'], shortReason: 'SEM Report couldn’t be generated: Google Ads data unavailable.', reason: 'The SEM Report couldn’t be generated: Google Ads data could not be fetched (Google returned a temporary error). Tried again 3 times over 3 days. The email was held.' }, ...list.slice(1)];
   return list;
 }
+// Reports regenerated by the AM after a failure, by history entry id. A failed email can be sent once none is still failing.
+const repRetried = {};
+function repStillFailing(h) { return (h.failedTypes || []).filter(t => !(repRetried[h.id] || []).includes(t)); }
 // A report's settings, and what goes in it for this client.
 function repRep(cfg, type) { return cfg.reports[type]; }
 function repSectionOk(wsId, s) { return repHas(wsId, s.source); }
@@ -2298,6 +2330,8 @@ function repFailed(wsId) { return repHistory(wsId)[0]?.status === 'failed'; }
 function repOffReason(wsId, cfg) {
   return !repTypesOn(wsId, cfg).length ? 'No report is turned on' : 'No recipients';
 }
+// Status pills (dark text on a tinted background, readable at small sizes). kind: sent | failed | scheduled | review | off
+function repPill(kind, label) { return `<span class="rep-pill is-${kind}">${esc(label)}</span>`; }
 function repStatusDot(s) { const [l, d, c] = REP_STATUS[s]; return `<span class="dot-label ${c}"><span class="dot ${d}"></span>${esc(l)}</span>`; }
 function repFill(text, wsId, month) {
   const cfg = repConfig(wsId), am = memberById(cfg?.owner);
@@ -2585,19 +2619,35 @@ function repAgencyRows() {
   });
 }
 function repAgencyBody() {
-  const rows = applySort(repAgencyRows(), 'rep-agency', { name: r => r.w.name, status: r => (repFailed(r.w.id) ? 0 : 2) + (r.status === 'inactive' ? 0 : 1), next: r => r.sendAt ? r.sendAt.getTime() : Infinity }, { col: 'status', dir: 'asc' });
+  const rows = applySort(repAgencyRows(), 'rep-agency', { name: r => r.w.name, next: r => r.sendAt ? r.sendAt.getTime() : Infinity }, { col: 'name', dir: 'asc' });
   const page = paginate(rows, 'rep-agency');
   return `<div class="table-wrap"><table class="table">
-    <thead><tr><th>${sortHeader('rep-agency', 'name', 'Client Workspace', 'repRefreshAgency')}</th><th>Linked</th><th>${sortHeader('rep-agency', 'status', 'Status', 'repRefreshAgency')}</th><th>Reports</th><th>${sortHeader('rep-agency', 'next', 'Next Send', 'repRefreshAgency')}</th><th>Last Sent</th></tr></thead>
+    <thead><tr><th>${sortHeader('rep-agency', 'name', 'Client Workspace', 'repRefreshAgency')}</th><th>Linked</th><th>Reports</th><th>${sortHeader('rep-agency', 'next', 'Next Send', 'repRefreshAgency')}</th><th>Last Sent</th><th></th></tr></thead>
     <tbody>${page.length ? page.map(r => `<tr class="clickable" onclick="openWorkspace('${q(r.w.id)}', 'reports')">
       <td><div class="rep-wrap-text t-bold">${esc(r.w.name)}</div></td>
       <td>${repSources(r.w.id).length ? `<span class="row" style="gap:6px">${repSources(r.w.id).map(p => platformLogo(p)).join('')}</span>` : '<span class="t-muted">Nothing linked</span>'}</td>
-      <td>${repStatusDot(r.status)}${r.status === 'inactive' ? `<div class="cell-sub">${esc(repOffReason(r.w.id, r.cfg))}</div>` : ''}${repFailed(r.w.id) ? '<div class="cell-sub rep-failed-line">Last report failed</div>' : ''}</td>
       <td>${r.cfg ? repTypeChips(r.types) : '<span class="t-muted">—</span>'}</td>
-      <td>${r.next ? `${esc(repMonthLabel(r.next))}<div class="cell-sub">Sends ${esc(fmtDateTime(r.sendAt))}</div>` : '<span class="t-muted">—</span>'}</td>
-      <td>${r.last ? `${esc(repMonthLabel(r.last.month))}<div class="cell-sub">${r.last.status === 'failed' ? 'Failed' : `Sent ${esc(fmtDate(r.last.sentAt))}`}</div>` : '<span class="t-muted">—</span>'}</td>
+      <td>${repNextCell(r)}</td>
+      <td>${repLastCell(r)}</td>
+      <td class="num">${r.status === 'active' && repInReview(r.cfg) && !repCancelled(r.cfg) ? `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openWorkspace('${q(r.w.id)}', 'reports', { tab: 'history' })"><i data-lucide="eye"></i>Review</button>` : ''}</td>
     </tr>`).join('') : '<tr><td colspan="6" class="table-empty">No client workspaces match your search.</td></tr>'}</tbody>
   </table></div>${paginationBar('rep-agency', rows.length, 'repRefreshAgency')}`;
+}
+// Next Send: the upcoming month with Month in progress, Ready for review (review period), Cancelled or Not scheduled.
+function repNextCell(r) {
+  if (!r.types.length) return '<span class="t-muted">—</span>';
+  const next = repNextMonth(r.cfg), when = `<span class="cell-sub">Sends ${esc(fmtDateTime(repSendDate(next)))}</span>`;
+  const pill = r.status === 'inactive' ? `${repPill('off', 'Not scheduled')}<span class="cell-sub">${esc(repOffReason(r.w.id, r.cfg))}</span>`
+    : !repInReview(r.cfg) ? `${repPill('off', 'Month in progress')}${when}`
+    : repCancelled(r.cfg) ? `${repPill('failed', 'Cancelled')}<span class="cell-sub">Won’t be sent</span>`
+    : `${repPill('review', 'Ready for review')}${when}`;
+  return `<div class="rep-cell-month">${esc(repMonthLabel(next))} Report</div><div class="rep-cell-status">${pill}</div>`;
+}
+// Last Sent: the latest month emailed, Sent (date) or Failed.
+function repLastCell(r) {
+  if (!r.last) return '<span class="t-muted">—</span>';
+  const pill = r.last.status === 'failed' ? `${repPill('failed', 'Failed')}<span class="cell-sub">Not sent</span>` : `${repPill('sent', 'Sent')}<span class="cell-sub">${esc(fmtDate(r.last.sentAt))}</span>`;
+  return `<div class="rep-cell-month">${esc(repMonthLabel(r.last.month))} Report</div><div class="rep-cell-status">${pill}</div>`;
 }
 function repRefreshAgency() { renderRegion('rep-agency-body', repAgencyBody()); }
 function repAgencySearch(v) { state.ui.repSearch = v; pager('rep-agency').page = 1; repRefreshAgency(); }
@@ -2636,10 +2686,12 @@ function repRenderClient() {
 function repSummaryCard(ws, cfg) {
   const status = repStatus(ws.id), next = repNextMonth(cfg), last = repHistory(ws.id)[0], types = repTypesOn(ws.id, cfg);
   const names = repJoin(types.map(t => REP_TYPES[t].short));
+  const these = `The ${repMonthLabel(next)} ${names} ${types.length > 1 ? 'reports' : 'report'}`;
   const line = !types.length ? 'No report is turned on. Turn on the SEM or SMM Report to start sending.'
     : status === 'inactive' ? 'Add at least one recipient to start sending.'
-    : `The ${repMonthLabel(next)} ${names} ${types.length > 1 ? 'reports' : 'report'} will be sent on ${fmtDateTime(repSendDate(next))} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}.`;
-  const failed = repFailed(ws.id) ? `<div class="banner banner-error rep-banner"><i data-lucide="circle-alert"></i><div class="grow"><div class="banner-title">The ${esc(repMonthLabel(last.month))} reports were not sent</div><div class="banner-text">${esc(last.reason)}</div></div><button type="button" class="banner-action" onclick="repResend('${q(last.id)}')">Try again now</button></div>` : '';
+    : repCancelled(cfg) ? `${these} won’t be sent: the send on ${fmtDateTime(repSendDate(next))} was cancelled.`
+    : `${these} ${repInReview(cfg) ? `${types.length > 1 ? 'are' : 'is'} ready to review in Sent Reports, and will be sent` : 'will be sent'} on ${fmtDateTime(repSendDate(next))} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}.`;
+  const failed = repFailed(ws.id) ? `<div class="banner banner-error rep-banner"><i data-lucide="circle-alert"></i><div class="grow"><div class="banner-title">The ${esc(repMonthLabel(last.month))} email was not sent</div><div class="banner-text">${esc(last.reason)}</div></div><button type="button" class="banner-action" onclick="repGo('history')">Go to Sent Reports</button></div>` : '';
   return `${failed}<section class="card rep-summary">
     <div class="grow"><div class="row wrap" style="gap:12px"><h2 class="h-card">Monthly Reports</h2>${repStatusDot(status)}</div><div class="rep-summary-line">${esc(line)}</div></div>
 </section>`;
@@ -2813,29 +2865,80 @@ function repRemoveTo(id) {
 // ---------- Sent Reports ----------
 function repHistoryHTML(ws, cfg) {
   const list = repHistory(ws.id), next = repNextMonth(cfg), status = repStatus(ws.id);
-  const pill = h => h.status === 'failed' ? '<span class="pill pill-red pill-sm">Failed</span>' : '<span class="pill pill-green pill-sm">Sent</span>';
+  // A failed email whose reports have all been regenerated is Ready to send.
+  const ready = h => h.status === 'failed' && !repStillFailing(h).length;
+  const pill = h => ready(h) ? `${repPill('scheduled', 'Ready to send')}<div class="cell-sub">Every report is generated. Send the email when ready.</div>`
+    : h.status === 'failed' ? repPill('failed', 'Failed') : repPill('sent', 'Sent');
   return `<section class="card"><div class="card-header"><div><h2 class="h-card">Sent Reports</h2><div class="card-sub">Every monthly email, with the PDFs exactly as they were sent. A failed email is tried again daily for 3 days before it shows here as Failed.</div></div></div>
-    <div class="table-wrap"><table class="table">
+    <div class="table-wrap"><table class="table rep-history">
       <thead><tr><th>Report Month</th><th>Reports</th><th>Status</th><th>Sent</th><th>Recipients</th><th></th></tr></thead>
       <tbody>
-        <tr class="rep-upcoming"><td>${esc(repMonthLabel(next))}</td><td>${repTypeChips(repTypesOn(ws.id, cfg))}</td><td>${status === 'inactive' ? '<span class="pill pill-grey pill-sm">Inactive</span>' : '<span class="pill pill-blue pill-sm">Scheduled</span>'}</td><td>${status === 'inactive' ? '<span class="t-muted">Not scheduled</span>' : esc(fmtDateTime(repSendDate(next)))}</td><td>${cfg.to.length}</td><td></td></tr>
-        ${list.map(h => `<tr><td>${esc(repMonthLabel(h.month))}</td><td>${repTypeChips(h.types)}</td><td>${pill(h)}${h.reason ? `<div class="cell-sub rep-wrap-text rep-reason">${esc(h.reason)}</div>` : ''}</td><td>${h.sentAt ? esc(fmtDateTime(h.sentAt)) : '<span class="t-muted">Not sent</span>'}</td>
+        ${repUpcomingRow(ws, cfg, next, status)}
+        ${list.map(h => `<tr><td>${esc(repMonthLabel(h.month))}</td><td>${repTypeChips(h.types)}</td><td>${pill(h)}${h.reason && !ready(h) ? `<div class="cell-sub rep-wrap-text rep-reason">${esc(h.shortReason || h.reason)}</div>` : ''}</td><td>${h.sentAt ? esc(fmtDateTime(h.sentAt)) : '<span class="t-muted">Not sent</span>'}</td>
           <td><span title="${esc(h.to.join(', '))}">${h.to.length}</span></td>
-          <td>${rowMenu(`rep-h-${h.id}`, [...(h.status === 'sent' ? h.types.map(t => ({ label: `View ${REP_TYPES[t].name}`, icon: 'eye', onClick: `repOpenSent('${t}', '${h.month}')` })) : []), { label: h.status === 'failed' ? 'Try again now' : 'Resend', icon: 'send', onClick: `repResend('${h.id}')` }])}</td></tr>`).join('')}
+          <td>${repHistoryActions(h)}</td></tr>`).join('')}
         ${list.length ? '' : '<tr><td colspan="6" class="table-empty">No reports have been sent yet.</td></tr>'}
       </tbody></table></div></section>`;
 }
-function repResend(id) {
-  const ws = wsById(state.ctx), cfg = repConfig(state.ctx), list = repHistories[state.ctx], h = list.find(x => x.id === id) || repHistory(state.ctx).find(x => x.id === id);
+// Sent Reports actions in three fixed columns, so they line up on every row: SEM, SMM, then the send action.
+function repActionCells(cells) { return `<div class="rep-actions">${cells.map(c => `<div>${c || ''}</div>`).join('')}</div>`; }
+// The next report's row in Sent Reports: Month in progress (nothing to review yet), Scheduled (review period, with
+// Preview and Cancel send), Cancelled, or Inactive.
+function repUpcomingRow(ws, cfg, next, status) {
+  const types = repTypesOn(ws.id, cfg), review = status === 'active' && repInReview(cfg), cancelled = review && repCancelled(cfg);
+  const from = fmtDate(new Date(repAddMonths(next, 1) + '-01T00:00:00'));
+  const pill = status === 'inactive' ? repPill('off', 'Not scheduled')
+    : cancelled ? repPill('failed', 'Cancelled')
+    : review ? repPill('review', 'Ready for review')
+    : repPill('off', 'Month in progress');
+  // Preview is the call-out while the report is waiting to be sent; before the month ends there is nothing to preview.
+  const preview = kind => REP_TYPE_IDS.map(t => types.includes(t) ? `<button type="button" class="btn ${kind} btn-sm" onclick="repOpenSent('${t}', '${next}')"><i data-lucide="eye"></i>Preview ${esc(REP_TYPES[t].short)}</button>` : '');
+  const actions = status === 'inactive' ? '' : !review ? `<div class="rep-actions"><span class="t-muted rep-not-ready">${esc(`Preview from ${from}`)}</span></div>`
+    : cancelled ? repActionCells([...preview('btn-outline'), `<button type="button" class="btn btn-outline btn-sm" onclick="repResume()"><i data-lucide="undo-2"></i>Resume send</button>`])
+    : repActionCells([...preview('btn-primary'), `<button type="button" class="btn btn-outline btn-sm" onclick="repCancelSend()"><i data-lucide="ban"></i>Cancel send</button>`]);
+  return `<tr class="rep-upcoming"><td>${esc(repMonthLabel(next))}</td><td>${repTypeChips(types)}</td><td>${pill}</td><td>${status === 'inactive' || cancelled ? '<span class="t-muted">Not scheduled</span>' : esc(fmtDateTime(repSendDate(next)))}</td><td>${cfg.to.length}</td><td>${actions}</td></tr>`;
+}
+function repCancelSend() {
+  const cfg = repConfig(state.ctx), next = repNextMonth(cfg), types = repTypesOn(state.ctx, cfg);
+  confirmDialog({ title: `Cancel the ${repMonthLabel(next)} send?`, text: `The ${repJoin(types.map(t => REP_TYPES[t].name))} for ${repMonthLabel(next)} won’t be sent on ${fmtDateTime(repSendDate(next))}. You can resume the send before then, or send them later from Sent Reports.`, confirmLabel: 'Cancel send', danger: true, icon: 'ban',
+    onConfirm: () => { cfg.skip = next; rerender(); showToast(`${repMonthLabel(next)} send cancelled`, 'ban'); } });
+}
+function repResume() {
+  const cfg = repConfig(state.ctx), next = repNextMonth(cfg);
+  cfg.skip = null;
+  rerender();
+  showToast(`${repMonthLabel(next)} reports will be sent on ${fmtDateTime(repSendDate(next))}`, 'undo-2');
+}
+// A sent email: View each report, Resend email. A failed one: Retry each report that couldn't be generated (View the
+// others), then Send email once nothing is still failing.
+function repHistoryActions(h) {
+  const failing = h.status === 'failed' ? repStillFailing(h) : [];
+  const view = t => `<button type="button" class="btn btn-outline btn-sm" onclick="repOpenSent('${t}', '${h.month}')"><i data-lucide="eye"></i>View ${esc(REP_TYPES[t].short)}</button>`;
+  const cells = REP_TYPE_IDS.map(t => !h.types.includes(t) ? '' : failing.includes(t)
+    ? `<button type="button" class="btn btn-primary btn-sm" onclick="repRetry('${h.id}', '${t}')"><i data-lucide="refresh-cw"></i>Retry ${esc(REP_TYPES[t].short)}</button>` : view(t));
+  const send = h.status === 'failed'
+    ? `<button type="button" class="btn ${failing.length ? 'btn-outline' : 'btn-primary'} btn-sm" ${failing.length ? `disabled title="Retry the ${esc(repJoin(failing.map(t => REP_TYPES[t].short)))} Report first"` : ''} onclick="repSendEmail('${h.id}')"><i data-lucide="send"></i>Send email</button>`
+    : `<button type="button" class="btn btn-outline btn-sm" onclick="repSendEmail('${h.id}')"><i data-lucide="send"></i>Resend email</button>`;
+  return repActionCells([...cells, send]);
+}
+// Regenerate one report of a failed email (mock: it now succeeds).
+function repRetry(id, type) {
+  const h = repHistory(state.ctx).find(x => x.id === id);
+  repRetried[id] = [...new Set([...(repRetried[id] || []), type])];
+  rerender();
+  showToast(`${REP_TYPES[type].name} for ${repMonthLabel(h.month)} regenerated${repStillFailing(h).length ? '' : '. The email is ready to send'}`, 'refresh-cw');
+}
+function repSendEmail(id) {
+  const ws = wsById(state.ctx), cfg = repConfig(state.ctx), list = repHistories[state.ctx], h = repHistory(state.ctx).find(x => x.id === id);
   const types = h.types.length ? h.types : repTypesOn(ws.id, cfg);
-  confirmDialog({ title: `${h.status === 'failed' ? 'Send' : 'Resend'} the ${repMonthLabel(h.month)} reports?`, text: `The ${repJoin(types.map(t => REP_TYPES[t].name))} ${types.length > 1 ? 'go' : 'goes'} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'} of ${ws.name} now, with the agency members copied in.`, confirmLabel: 'Send now', icon: 'send',
+  confirmDialog({ title: `${h.status === 'failed' ? 'Send' : 'Resend'} the ${repMonthLabel(h.month)} email?`, text: `The ${repJoin(types.map(t => REP_TYPES[t].name))} ${types.length > 1 ? 'go' : 'goes'} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'} of ${ws.name} now, with the agency members copied in.`, confirmLabel: 'Send now', icon: 'send',
     onConfirm: () => {
       const entry = { id: uid('rh'), month: h.month, sentAt: repToday().toISOString(), to: cfg.to.map(r => r.email), status: 'sent', types };
       const i = list.findIndex(x => x.id === id);
       if (h.status === 'failed' && i >= 0) list[i] = entry; else list.unshift(entry);
       state.flags.repFailed = false;
       rerender();
-      showToast(`${repMonthLabel(h.month)} reports sent to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}`, 'send');
+      showToast(`${repMonthLabel(h.month)} email sent to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}`, 'send');
     } });
 }
 
@@ -2845,7 +2948,8 @@ function repOpenSent(type, month) { state.params = { tab: 'history', report: typ
 function repClosePreview() { const { preview, report, ...rest } = state.params; state.params = rest; rerender(); }
 function repViewArgs() {
   const type = REP_TYPES[state.params.report] ? state.params.report : REP_TYPE_IDS[0], sample = state.params.preview === 'sample';
-  return { wsId: state.ctx, type, cfg: repConfig(state.ctx), sample, month: sample ? repLastMonth() : state.params.preview };
+  const cfg = repConfig(state.ctx), month = sample ? repLastMonth() : state.params.preview;
+  return { wsId: state.ctx, type, cfg, sample, month, upcoming: !sample && month === repNextMonth(cfg) && !repHistory(state.ctx).some(h => h.month === month && h.status === 'sent') };
 }
 function repViewerHTML() {
   const r = repViewArgs(), t = REP_TYPES[r.type], ws = wsById(r.wsId);
@@ -2853,8 +2957,8 @@ function repViewerHTML() {
   const months = [...new Set([...sentMonths, ...(r.sample ? [] : [r.month])])].sort().reverse();
   return `<div class="rep-viewer" role="dialog" aria-modal="true" aria-label="${esc(t.name)} preview">
     <div class="rep-viewer-bar">
-      <div class="grow"><div class="rep-viewer-title">${r.sample ? `${esc(t.name)} preview <span class="rep-sample-badge">Sample data</span>` : esc(repFileName(r.wsId, r.type, r.month))}</div>
-        <div class="rep-viewer-sub">${r.sample ? esc(`Made-up names and numbers, to check the sections and columns that are turned on. The real report uses ${ws.name}’s data.`) : 'As sent. In the product this is the stored PDF; the prototype draws it again.'}</div></div>
+      <div class="grow"><div class="rep-viewer-title">${r.sample ? `${esc(t.name)} preview <span class="rep-sample-badge">Sample data</span>` : `${esc(repFileName(r.wsId, r.type, r.month))}${r.upcoming ? ' <span class="rep-upcoming-badge">Upcoming</span>' : ''}`}</div>
+        <div class="rep-viewer-sub">${r.sample ? esc(`Made-up names and numbers, to check the sections and columns that are turned on. The real report uses ${ws.name}’s data.`) : r.upcoming ? esc(`Not sent yet: this is what recipients will get on ${fmtDateTime(repSendDate(r.month))}, with ${ws.name}’s data and the current set-up. Change sections, columns or recipients until then.`) : repHistory(r.wsId).some(h => h.month === r.month && h.status === 'failed') ? 'Generated, not sent yet: the email is held until every report in it has been generated.' : 'As sent. In the product this is the stored PDF; the prototype draws it again.'}</div></div>
       ${r.sample ? '' : `<select class="select rep-viewer-month" aria-label="Report month" onchange="state.params.preview = this.value; rerender()">${months.map(m => `<option value="${m}" ${m === r.month ? 'selected' : ''}>${esc(repMonthLabel(m))}</option>`).join('')}</select>`}
       <button type="button" class="btn btn-primary" onclick="repDownload()"><i data-lucide="download"></i>Download PDF</button>
       <button type="button" class="kebab rep-viewer-close" aria-label="Close preview" onclick="repClosePreview()"><i data-lucide="x"></i></button>
@@ -2892,7 +2996,7 @@ registerScreen('reports', {
   contexts: ['agency', 'client'],
   title: () => isAgency() ? 'Reports' : 'Monthly Reports',
   desc: () => isAgency() ? 'Monthly SEM and SMM reports for your clients: what’s scheduled, what was sent and what needs attention.' : 'Choose which reports this client receives, the sections and columns in each, when they’re sent and who receives them. Only your agency sees this page.',
-  key: () => isAgency() ? 'agency-reports' : state.params.preview === 'sample' ? 'client-reports-sample' : state.params.preview ? 'client-reports-sent' : `client-reports-${REP_TYPE_IDS.includes(repTab()) ? 'report' : repTab()}`,
+  key: () => isAgency() ? 'agency-reports' : state.params.preview === 'sample' ? 'client-reports-sample' : state.params.preview ? 'client-reports-sent' : `client-reports-${repTab()}`,
   render: () => isAgency() ? repRenderAgency() : repRenderClient(),
   afterRender: () => repFitPages()
 });
@@ -2904,9 +3008,12 @@ registerDevScreen('Client workspace', 'client-reports-sent', 'Reports › Sent r
   const h = repHistory(state.ctx).find(x => x.status === 'sent');
   navigate('reports', h ? { tab: 'history', report: h.types[0], preview: h.month } : { tab: 'history' });
 });
+const repReviewToggle = () => ({ label: 'Review period (1st of next month)', active: !!state.flags.repReview, run: () => { state.flags.repReview = !state.flags.repReview; if (state.params.preview && !state.flags.repReview) repClosePreview(); else render(); } });
 const repDevToggles = () => [
+  repReviewToggle(),
   { label: 'Last report failed', active: !!state.flags.repFailed, run: () => { state.flags.repFailed = !state.flags.repFailed; rerender(); } }
 ];
+registerDevToggles('agency-reports', () => [repReviewToggle()]);
 [...REP_TABS.map(t => `client-reports-${t.id}`), 'client-reports-sample', 'client-reports-sent'].forEach(k => registerDevToggles(k, repDevToggles));
 
 (function repSpecs() {
@@ -2942,7 +3049,7 @@ ${common}
 ### Key functional specifications
 ${body}
 ${extra}` });
-  const summary = `- **Summary card (all tabs):** status, one line on the next send ("The November 2026 SEM and SMM reports will be sent on 3 Dec 2026, 12:00 to 2 recipients"). A failed latest send shows a red banner with the reason and **Try again now**.`;
+  const summary = `- **Summary card (all tabs):** status, one line on the next send ("The November 2026 SEM and SMM reports will be sent on 3 Dec 2026, 12:00 to 2 recipients"). A failed latest email shows a red banner with the reason and a link to Sent Reports, where the failed report can be retried.`;
   const report = type => spec(`Reports › ${REP_TYPES[type].name} (Client workspace, agency only)`, `Turn the ${REP_TYPES[type].name} on or off for this client, and choose which of its fixed sections and table columns are included.`, `
 ${summary}
 - **No set-up step:** every client workspace has this page, with both reports off to begin with. Every section and column starts on. Recipients start with the workspace Owner and a marketing@ address; the account manager is copied in.
@@ -2966,10 +3073,9 @@ ${outline(type)}`, sources + (type === 'smm' ? connection : ''));
   Object.assign(screenSpecs, {
     'agency-reports': spec('Reports — Client Reports (Agency)', 'Every client workspace the AM can see, with the state of its monthly reports, so nothing is missed: which clients have no reports, which are paused and which failed last month.', `
 - **KPI cards:** count of workspaces that are Active, Inactive, and whose last report failed.
-- **Table:** Client Workspace, Linked (logos of the linked sources, or "Nothing linked"), Status, Reports (SEM / SMM chips for the reports turned on), Next Send (month and send date and time), Last Sent (month, sent date or Failed). Default sort: status (failed first). Search by name, 10 per page.
+- **Table:** Client Workspace, Linked (logos of the linked sources, or "Nothing linked"), Reports (SEM / SMM tags for the reports turned on, or None), Next Send ("November 2026 Report", then a pill: Month in progress (grey) / Ready for review (amber, during the review period) / Cancelled (red) / Not scheduled (grey, with the reason), and the send date and time), Last Sent ("October 2026 Report", then Sent with the date, or Failed), and a **Review** button during the review period. No Status column: the Reports and Next Send columns show it. Sort by name (default) or next send. Search by name, 10 per page.
 - **Statuses:** Active (green: a report is on and there is at least 1 recipient) · Inactive (grey), with the reason underneath: No report is turned on / No recipients. A failed latest email shows "Last report failed" in red under the status. Inactive workspaces stay in the list, so the AM can see which clients still need a report.
 - Selecting a row opens that workspace's Reports page.`),
-    'client-reports-report': report('sem'),
     'client-reports-sem': report('sem'),
     'client-reports-smm': report('smm'),
     'client-reports-delivery': spec('Reports › Schedule & Recipients (Client workspace, agency only)', 'When the reports are sent, who receives them and what the email says. Changes save as they are made.', `
@@ -2982,8 +3088,12 @@ ${summary}
 - **Failures:** if a source's data can't be fetched (e.g. an expired connection), nothing is sent with missing data. It is tried again daily for 3 days, then marked Failed and the AM is notified.
 - **PDPA:** recipient emails are personal data: only stored for sending, removed with the workspace; the prototype uses placeholder addresses only.`),
     'client-reports-history': spec('Reports › Sent Reports (Client workspace, agency only)', 'Every monthly email sent for this client, so the AM can see what the client received and resend it.', `
-- First row: the next send (Scheduled or Inactive) with the reports that will be attached.
-- Each past email: month, reports attached (SEM / SMM), status (Sent / Failed with the reason), sent date and time, recipient count (hover for the addresses). Actions: **View SEM Report** / **View SMM Report** (the stored PDF, with the client's real data), **Resend** or, for a failed email, **Try again now** (confirmation, then sends to the current recipients).`),
+- **First row: the next report.** While its month is still running: **Month in progress**, with "Preview from 1 Dec" in place of the Preview buttons. From the 1st of the following month until it is sent on the 3rd at 12:00 (the **review period**): **Ready for review**, with **Preview SEM / Preview SMM** (the real report as it will be sent, with the client's data and the current set-up, marked "Upcoming") and **Cancel send** (confirmation; the row then shows **Cancelled** with **Resume send**). Inactive workspaces show Inactive.
+- **Past reports** have visible **View SEM / View SMM** buttons; next to them, **Resend email**. The action buttons sit in three fixed columns (SEM, SMM, send action), so they line up from row to row; nothing is hidden in a menu. Before the month ends the next report's row says "Preview from 1 Dec" instead of a button; during the review period its Preview buttons are the solid, primary call-out. The summary line says the reports are ready to review in Sent Reports.
+- **Agency list:** clients in the review period have a **Review** button that opens their Sent Reports tab, and Next Send shows a "Ready for review" pill with "Sends 3 Dec 2026, 12:00" (or "Cancelled").
+- Dev toggle **Review period (1st of next month)** shows this state.
+- Each past email: month, reports attached (SEM / SMM), status (Sent / Failed with the reason), sent date and time, recipient count (hover for the addresses). Actions: **View SEM** / **View SMM** (the stored PDF, with the client's real data) and **Resend email** (confirmation, then sends to the current recipients).
+- **A failed email** means a report couldn't be generated (e.g. Google Ads data couldn't be fetched); the email is held, not sent with a missing report. The row has **Retry SEM** / **Retry SMM** for each report that failed (regenerates just that report; the others show **View**), and **Send email**, disabled until no report is still failing. Once every report is regenerated the row shows **Ready to send**. The red banner on every tab links to Sent Reports until the email is sent.`),
     'client-reports-sample': spec('Reports › Preview with sample data (Client workspace, agency only)', 'Check the layout of a report, with the sections and columns turned on for this client, without showing real data.', `
 - Opened from **Preview with sample data** on the SEM or SMM Report tab. Link: \`report=sem|smm&preview=sample\`.
 - **Sample data:** made-up names (Lorem ipsum campaign 1, Dolor sit ad group 2…), lorem ipsum captions, search ad text and conversion actions, example.com links, mock numbers for last month. "Sample data" shows on the cover, on every page header, in the file name (\`…_SAMPLE\`) and in the viewer.

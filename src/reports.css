@@ -182,4 +182,25 @@ label.rep-block-title { cursor: pointer; }
 .rep-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .rep-slot-cards { flex: 0 0 auto; }
 .rep-kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.cell-sub.rep-failed-line { color: var(--error); font-weight: 700; }
+/* Sent Reports actions: previews (solid while the upcoming report waits to be sent), cancel / resume send. */
+.btn.btn-sm { height: 30px; padding: 0 12px; font-size: 12px; }
+.btn.btn-sm svg.lucide { width: 14px; height: 14px; }
+.rep-actions { display: grid; grid-template-columns: 124px 124px 138px; gap: 8px; justify-content: end; align-items: center; }
+.rep-actions .btn { width: 100%; justify-content: center; }
+.rep-actions .rep-not-ready { grid-column: 1 / 3; text-align: center; }
+.rep-not-ready { font-size: 12px; white-space: nowrap; }
+/* Status pills: dark text on a tint, with a border, so they stand out and stay readable. */
+.rep-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: var(--r-pill); border: 1px solid; font-size: 11px; font-weight: 700; letter-spacing: .4px; white-space: nowrap; }
+.rep-pill.is-sent { background: #E4F6EA; color: #1C6334; border-color: #9DD8B2; }
+.rep-pill.is-failed { background: #FDE8E8; color: #A40C0A; border-color: #F1B5B4; }
+.rep-pill.is-scheduled { background: var(--tint); color: #1A4F8F; border-color: var(--blue-light); }
+.rep-pill.is-review { background: #FFF1D6; color: #7A4300; border-color: #F2C36B; }
+.rep-pill.is-off { background: var(--grey-light); color: #555; border-color: var(--border); }
+.rep-cell-month { white-space: nowrap; }
+.rep-cell-status { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 4px; }
+.rep-upcoming-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 10px; border-radius: var(--r-pill); font-size: 11px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+.rep-upcoming-badge { background: var(--tint); color: #1A4F8F; margin-left: 8px; vertical-align: 2px; }
+/* Sent Reports: month, report tags and send time stay on one line; a failure reason wraps in a narrower column. */
+.rep-history td:nth-child(1), .rep-history td:nth-child(4) { white-space: nowrap; }
+.rep-history .rep-type-chips { flex-wrap: nowrap; }
+.rep-history .rep-reason { max-width: 240px; }
