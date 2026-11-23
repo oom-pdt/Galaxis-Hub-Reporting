@@ -464,7 +464,14 @@ label.rep-block-title { cursor: pointer; }
 .rep-switch { align-items: flex-start; cursor: pointer; }
 .rep-switch .toggle { margin-top: 2px; }
 .rep-grid { gap: 16px 24px; margin-top: 8px; }
-.rep-static { display: flex; align-items: center; background: var(--grey-light); color: var(--text-secondary); }
+.rep-default-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: var(--r-pill); background: var(--grey-light); color: var(--text-secondary); font-size: 11px; font-weight: 700; letter-spacing: .25px; white-space: nowrap; }
+/* Fixed schedule: read-only text, deliberately not styled like an input. */
+.rep-schedule { display: flex; flex-wrap: wrap; gap: 12px 48px; margin: 4px 0 0; }
+.rep-schedule div { min-width: 0; }
+.rep-schedule dt { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
+.rep-schedule dd { margin: 0; font-weight: 700; font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+.rep-schedule-note { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 17px; color: var(--text-secondary); max-width: 760px; }
+.rep-schedule-note svg.lucide { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
 .rep-next { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--tint); color: var(--link); font-weight: 700; font-size: 13px; overflow-wrap: anywhere; }
 .rep-next.is-off { background: var(--grey-light); color: var(--text-secondary); }
 .form-section-title.rep-first { margin-top: 0; }
@@ -1972,10 +1979,10 @@ function repAddMonths(month, n) { const [y, m] = month.split('-').map(Number); r
 function repMonthDays(month) { const [y, m] = month.split('-').map(Number); return new Date(y, m, 0).getDate(); }
 function repMonthLabel(month) { const [y, m] = month.split('-').map(Number); return `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${y}`; }
 function repLastMonth() { return repAddMonths(repMonthKey(repToday()), -1); }
-// Every client's reports for `month` are sent on the 3rd of the following month at 9:00 (Singapore time). Not
+// Every client's reports for `month` are sent on the 3rd of the following month at 12:00 (Singapore time). Not
 // configurable: by the 3rd, most late conversions have come in.
 const REP_SEND_DAY = 3;
-function repSendDate(month, day = REP_SEND_DAY) { const [y, m] = month.split('-').map(Number); return new Date(y, m, day, 9, 0); }
+function repSendDate(month, day = REP_SEND_DAY) { const [y, m] = month.split('-').map(Number); return new Date(y, m, day, 12, 0); }
 function repOrdinal(n) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
 // The next reports to go out: last month's if their send date is still ahead, otherwise this month's.
 function repNextMonth(cfg) {
@@ -2748,12 +2755,14 @@ function repDeliveryHTML(ws, cfg) {
   const agency = members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)));
   const clientMembers = members.filter(m => m.org === ws.id && m.status === 'active' && !cfg.to.some(r => r.email.toLowerCase() === m.email.toLowerCase()));
   const err = state.ui.repToErr || '';
-  return `<section class="card"><div class="card-header"><div><h2 class="h-card">Schedule</h2><div class="card-sub">Each report turned on goes out every month, with the SEM and SMM Reports together in one email. Each report covers the previous calendar month (1st to last day).</div></div></div>
+  // The schedule is the same for every client and can't be changed, so it is shown as plain text, not as fields.
+  return `<section class="card"><div class="card-header"><div><div class="row wrap" style="gap:10px"><h2 class="h-card">Schedule</h2><span class="rep-default-tag">Standard for all clients</span></div><div class="card-sub">Each report turned on goes out every month, with the SEM and SMM Reports together in one email. Each report covers the previous calendar month (1st to last day).</div></div></div>
       <div class="stack-sm">
-        <div class="grid-2 rep-grid">
-          <div class="field"><span class="field-label">Send on</span><div class="input rep-static">The 3rd of each month</div><div class="field-hint">The same for every client, so most late conversions have come in.</div></div>
-          <div class="field"><span class="field-label">Time</span><div class="input rep-static">9:00 am, Singapore time</div><div class="field-hint">The PDFs are generated just before they are sent, and the numbers in them are kept as they were then.</div></div>
-        </div>
+        <dl class="rep-schedule">
+          <div><dt>Sent on</dt><dd>The 3rd of each month</dd></div>
+          <div><dt>At</dt><dd>12:00 pm, Singapore time</dd></div>
+        </dl>
+        <div class="rep-schedule-note"><i data-lucide="info"></i><span>This schedule is set by Galaxis for every client and can’t be changed. By the 3rd, most late conversions have come in. The PDFs are generated just before they are sent, and the numbers in them are kept as they were then.</span></div>
         <div class="rep-next ${types.length ? '' : 'is-off'}"><i data-lucide="calendar-clock"></i><span>${esc(types.length ? `Next: the ${repMonthLabel(next)} reports, on ${fmtDateTime(repSendDate(next))}.` : 'No report is turned on.')}</span></div>
       </div></section>
     <section class="card"><div class="card-header"><div><h2 class="h-card">Recipients</h2><div class="card-sub">The client contacts who receive the PDFs, and the agency members copied in. Up to 20 recipients.</div></div></div>
@@ -2933,7 +2942,7 @@ ${common}
 ### Key functional specifications
 ${body}
 ${extra}` });
-  const summary = `- **Summary card (all tabs):** status, one line on the next send ("The November 2026 SEM and SMM reports will be sent on 3 Dec 2026, 09:00 to 2 recipients"). A failed latest send shows a red banner with the reason and **Try again now**.`;
+  const summary = `- **Summary card (all tabs):** status, one line on the next send ("The November 2026 SEM and SMM reports will be sent on 3 Dec 2026, 12:00 to 2 recipients"). A failed latest send shows a red banner with the reason and **Try again now**.`;
   const report = type => spec(`Reports › ${REP_TYPES[type].name} (Client workspace, agency only)`, `Turn the ${REP_TYPES[type].name} on or off for this client, and choose which of its fixed sections and table columns are included.`, `
 ${summary}
 - **No set-up step:** every client workspace has this page, with both reports off to begin with. Every section and column starts on. Recipients start with the workspace Owner and a marketing@ address; the account manager is copied in.
@@ -2966,7 +2975,7 @@ ${outline(type)}`, sources + (type === 'smm' ? connection : ''));
     'client-reports-delivery': spec('Reports › Schedule & Recipients (Client workspace, agency only)', 'When the reports are sent, who receives them and what the email says. Changes save as they are made.', `
 ${summary}
 - **One email for both reports:** the SEM and SMM Reports turned on are attached to the same monthly email.
-- **Schedule:** no on/off switch here: each report turned on (SEM / SMM tabs) is sent every month. **Send on** (the 3rd of each month) and **Time** (9:00 am Singapore time) are shown but not configurable: the same for every client, so most late conversions have come in. Each report covers the previous calendar month. The PDFs are made just before sending and their numbers are frozen.
+- **Schedule:** no on/off switch here: each report turned on (SEM / SMM tabs) is sent every month. **Sent on** (the 3rd of each month) and **At** (12:00 pm Singapore time) are shown as plain text with a "Standard for all clients" tag and a note that they can't be changed; they are not form fields: the same for every client, so most late conversions have come in. Each report covers the previous calendar month. The PDFs are made just before sending and their numbers are frozen.
 - **Recipients — To:** client contacts (name optional, email required, valid and not duplicated), up to 20; or add a member of the workspace. Without recipients nothing is sent and the status is Inactive.
 - **Recipients — CC:** agency members assigned to the workspace.
 - **Email:** account manager (cover "Prepared by" and reply-to), subject and message with {client}, {month} and {am} placeholders and a live subject preview; attachments \`{Client}_SEM-Report_{YYYY-MM}.pdf\` and \`{Client}_SMM-Report_{YYYY-MM}.pdf\`. Sent from a Galaxis no-reply address.

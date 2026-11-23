@@ -62,7 +62,14 @@ label.rep-block-title { cursor: pointer; }
 .rep-switch { align-items: flex-start; cursor: pointer; }
 .rep-switch .toggle { margin-top: 2px; }
 .rep-grid { gap: 16px 24px; margin-top: 8px; }
-.rep-static { display: flex; align-items: center; background: var(--grey-light); color: var(--text-secondary); }
+.rep-default-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: var(--r-pill); background: var(--grey-light); color: var(--text-secondary); font-size: 11px; font-weight: 700; letter-spacing: .25px; white-space: nowrap; }
+/* Fixed schedule: read-only text, deliberately not styled like an input. */
+.rep-schedule { display: flex; flex-wrap: wrap; gap: 12px 48px; margin: 4px 0 0; }
+.rep-schedule div { min-width: 0; }
+.rep-schedule dt { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
+.rep-schedule dd { margin: 0; font-weight: 700; font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+.rep-schedule-note { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 17px; color: var(--text-secondary); max-width: 760px; }
+.rep-schedule-note svg.lucide { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
 .rep-next { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--tint); color: var(--link); font-weight: 700; font-size: 13px; overflow-wrap: anywhere; }
 .rep-next.is-off { background: var(--grey-light); color: var(--text-secondary); }
 .form-section-title.rep-first { margin-top: 0; }
