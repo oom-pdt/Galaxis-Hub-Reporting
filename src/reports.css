@@ -8,6 +8,11 @@
 /* ---------- Summary card and banners ---------- */
 .rep-banner { margin-bottom: 16px; }
 .rep-banner .banner-text { overflow-wrap: anywhere; }
+.rep-banner-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+.rep-banner-actions .banner-action { margin-left: 0; }
+.rep-btn-on-error { background: #A40C0A; border-color: #A40C0A; color: #fff; }
+.rep-btn-on-error:hover { background: #870A08; border-color: #870A08; }
+.rep-banner-ready { background: var(--tint); border-color: var(--blue-light); color: #1A4F8F; }
 .rep-summary { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; margin-bottom: 28px; }
 .rep-summary-line { color: var(--text-secondary); margin-top: 8px; overflow-wrap: anywhere; }
 .card-header > .row.wrap { flex-shrink: 1; justify-content: flex-end; }
@@ -29,7 +34,20 @@
 
 /* ---------- SEM / SMM Report: sections and columns ---------- */
 .rep-type-switch { margin-bottom: 16px; }
-.rep-blocks.is-off .rep-section-row { opacity: .75; }
+/* Report off: switches and chips turn grey (text keeps its contrast), so the sections don't read as being sent. */
+.rep-blocks.is-off .toggle input:checked + span { background: #9AA1A9; }
+.rep-blocks.is-off .rep-col-chip.on { border-color: var(--border); background: var(--grey-light); }
+.rep-blocks.is-off .rep-col-chip input { accent-color: #6F6F6F; }
+.rep-off-note { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; margin-bottom: 12px; border-radius: var(--r-md); background: var(--grey-light); color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
+.rep-off-note svg.lucide { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+.rep-blocks-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.rep-blocks-label { font-size: 12px; font-weight: 700; letter-spacing: .5px; color: var(--text-secondary); }
+.rep-expand-all { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--link); background: none; border: 0; padding: 4px 0; cursor: pointer; }
+.rep-expand-all svg.lucide { width: 14px; height: 14px; }
+button.rep-expand { width: 100%; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; font-weight: 700; }
+button.rep-expand:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 4px; }
+.rep-chev { width: 16px; height: 16px; margin-left: auto; color: var(--text-secondary); transition: transform .15s; flex-shrink: 0; }
+.rep-expand[aria-expanded="true"] .rep-chev { transform: rotate(180deg); }
 .rep-section-row { align-items: flex-start; }
 .rep-section-toggle { margin-top: 2px; }
 .toggle input:disabled + span { cursor: not-allowed; background: #E4E4E4; box-shadow: inset 0 0 0 1px #B8B8B8; }
@@ -73,16 +91,10 @@ label.rep-block-title { cursor: pointer; }
 .rep-next { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--tint); color: var(--link); font-weight: 700; font-size: 13px; overflow-wrap: anywhere; }
 .rep-next.is-off { background: var(--grey-light); color: var(--text-secondary); }
 .form-section-title.rep-first { margin-top: 0; }
-.rep-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 12px; align-items: end; margin-top: 16px; }
-.rep-from-members { margin-top: 16px; max-width: 480px; }
-.rep-cc-add { width: auto; min-width: 200px; height: 28px; font-size: 12px; }
 .chip-outline.rep-wrap-text { white-space: normal; height: auto; min-height: 28px; }
 .rep-attach { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
 .rep-reason { max-width: 360px; white-space: normal; }
 .rep-upcoming td { background: #F8FBFF; }
-
-@media (max-width: 760px) {
-  .rep-add, }
 
 /* ---------- PDF viewer ---------- */
 .rep-viewer { position: fixed; inset: var(--devbar-h) 0 0 0; z-index: 900; display: flex; flex-direction: column; background: #525659; }
@@ -192,7 +204,7 @@ label.rep-block-title { cursor: pointer; }
 /* Sent Reports actions: previews (solid while the upcoming report waits to be sent), cancel / resume send. */
 .btn.btn-sm { height: 30px; padding: 0 12px; font-size: 12px; }
 .btn.btn-sm svg.lucide { width: 14px; height: 14px; }
-.rep-actions { display: grid; grid-template-columns: 124px 124px 138px; gap: 8px; justify-content: end; align-items: center; }
+.rep-actions { display: grid; grid-template-columns: 112px 112px 128px; gap: 8px; justify-content: end; align-items: center; }
 .rep-actions .btn { width: 100%; justify-content: center; }
 .rep-actions .rep-not-ready { grid-column: 1 / 3; text-align: center; }
 .rep-not-ready { font-size: 12px; white-space: nowrap; }
@@ -207,7 +219,35 @@ label.rep-block-title { cursor: pointer; }
 .rep-cell-status { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 4px; }
 .rep-upcoming-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 10px; border-radius: var(--r-pill); font-size: 11px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
 .rep-upcoming-badge { background: var(--tint); color: #1A4F8F; margin-left: 8px; vertical-align: 2px; }
-/* Sent Reports: month, report tags and send time stay on one line; a failure reason wraps in a narrower column. */
-.rep-history td:nth-child(1), .rep-history td:nth-child(4) { white-space: nowrap; }
-.rep-history .rep-type-chips { flex-wrap: nowrap; }
+/* Sent Reports: month and send time stay on one line; a failure reason wraps in a narrower column. */
+.rep-history td:nth-child(1), .rep-history td:nth-child(3) { white-space: nowrap; }
 .rep-history .rep-reason { max-width: 240px; }
+.rep-history .cell-sub { font-size: 12px; line-height: 16px; }
+
+/* Recipients: people as chips (initials, name, email), added with one picker that suggests as you type. */
+.rep-people { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.rep-person { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; padding: 6px 10px 6px 6px; border: 1px solid var(--border); border-radius: var(--r-pill); background: var(--surface); }
+.rep-person .avatar, .rep-combo-opt .avatar { width: 28px; height: 28px; font-size: 11px; color: var(--primary-dark); }
+.rep-person-text { display: flex; flex-direction: column; min-width: 0; }
+.rep-person-name { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.rep-person-email { font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.rep-person .chip-remove { color: var(--text-secondary); padding: 4px; border-radius: 50%; cursor: pointer; }
+.rep-person .chip-remove:hover { background: var(--grey-light); color: var(--text); }
+.rep-person .chip-remove svg.lucide { width: 14px; height: 14px; }
+.rep-none { margin-bottom: 12px; }
+.rep-combo { max-width: 520px; }
+.rep-combo-box { position: relative; }
+.rep-combo-list { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; max-height: 260px; overflow-y: auto; margin: 0; padding: 6px; list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-soft); }
+.rep-combo-opt { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; }
+.rep-combo-opt.active, .rep-combo-opt:hover { background: var(--tint); }
+.rep-combo-empty { padding: 8px; font-size: 13px; color: var(--text-secondary); }
+
+/* Agency summary cards double as filters for the client table. */
+.rep-filter-card { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.rep-filter-card:hover { border-color: var(--blue-light); }
+.rep-filter-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.rep-filter-card.is-on { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); background: var(--tint); }
+.rep-filter-card.is-on .t-error { color: #C00D0B; }
+.rep-filter-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 12px; border-radius: var(--r-pill); background: var(--tint); color: #1A4F8F; font-size: 12px; font-weight: 700; }
+.rep-filter-chip .chip-remove { cursor: pointer; padding: 2px; }
+.rep-filter-chip svg.lucide { width: 14px; height: 14px; }

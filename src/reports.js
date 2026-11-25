@@ -2,6 +2,30 @@
 // Instagram and Meta Ads), sent automatically to the client's recipients. The sections and their order are fixed; the
 // AM only turns sections, and table columns, on or off. Agency only: client users never see this page, only the PDF.
 // Owns src/reports.js + src/reports.css. Every global here is prefixed `rep`.
+//
+// Icon registry: one meaning per icon across the app (check here before using an icon somewhere new).
+//   layout-dashboard   Dashboard page          file-chart-column  Reports page
+//   building-2         Organisation page       users              Team & Access page
+//   blocks             Integrations page       cable              Ad Accounts page (agency)
+//   eye-off            Agency only (hidden from client users)
+//   search-check       SEM Report              thumbs-up          SMM Report
+//   calendar-cog       Schedule & Recipients   history            Sent Reports
+//   calendar-clock     Next scheduled send     info               Explanatory note
+//   eye                View / preview a report send               Send or resend the email
+//   refresh-cw         Retry (regenerate) a report                ban    Cancel a send
+//   undo-2             Resume a cancelled send circle-alert       Failed (error banner)
+//   triangle-alert     Warning                 circle-pause       Report turned off
+//   lock               Always included, can't be turned off
+//   layout-grid        Summary cards           chart-spline       Charts
+//   table-2            Table columns           chevron-down       Expand / open a menu
+//   chevrons-up-down   Expand all              chevrons-down-up   Collapse all
+//   x                  Remove / close / clear  plus               Add
+//   paperclip          Attachments             download           Download PDF
+//   mail               Recipient added (toast) search             Search
+//   user               Account menu            home               Go to My Workspace
+//   chevron-left/right Previous / next page
+//   check              Current workspace       repeat             Switched workspace (toast)
+//   more-vertical      Row actions menu (shared helper, not used on these pages)
 
 // =====================================================================
 // Catalogue: sources, categories, columns, breakdowns
@@ -841,9 +865,18 @@ function repPages(r) {
 // Agency: every client's reports at a glance
 // =====================================================================
 state.ui.repSearch = '';
+// The summary cards filter the table: click one to show only those clients, click it again to show all.
+const REP_FILTERS = {
+  active: { label: 'Active', test: id => repStatus(id) === 'active' },
+  inactive: { label: 'Inactive', test: id => repStatus(id) === 'inactive' },
+  failed: { label: 'Last report failed', test: id => repFailed(id) }
+};
+state.ui.repFilter = null;
+function repSetFilter(f) { state.ui.repFilter = state.ui.repFilter === f ? null : f; pager('rep-agency').page = 1; rerender(); }
 function repAgencyRows() {
   const s = state.ui.repSearch.trim().toLowerCase();
-  return visibleWorkspaces().filter(w => !s || w.name.toLowerCase().includes(s)).map(w => {
+  const f = REP_FILTERS[state.ui.repFilter];
+  return visibleWorkspaces().filter(w => (!s || w.name.toLowerCase().includes(s)) && (!f || f.test(w.id))).map(w => {
     const cfg = repConfig(w.id), last = repHistory(w.id)[0], status = repStatus(w.id);
     const next = status === 'active' ? repNextMonth(cfg) : null;
     return { w, cfg, last, status, next, types: cfg ? repTypesOn(w.id, cfg) : [], sendAt: next ? repSendDate(next) : null };
@@ -861,7 +894,7 @@ function repAgencyBody() {
       <td>${repNextCell(r)}</td>
       <td>${repLastCell(r)}</td>
       <td class="num">${r.status === 'active' && repInReview(r.cfg) && !repCancelled(r.cfg) ? `<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openWorkspace('${q(r.w.id)}', 'reports', { tab: 'history' })"><i data-lucide="eye"></i>Review</button>` : ''}</td>
-    </tr>`).join('') : '<tr><td colspan="6" class="table-empty">No client workspaces match your search.</td></tr>'}</tbody>
+    </tr>`).join('') : `<tr><td colspan="6" class="table-empty">${state.ui.repFilter ? `No client workspaces match “${esc(REP_FILTERS[state.ui.repFilter].label)}”${state.ui.repSearch.trim() ? ' and your search' : ''}.` : 'No client workspaces match your search.'}</td></tr>`}</tbody>
   </table></div>${paginationBar('rep-agency', rows.length, 'repRefreshAgency')}`;
 }
 // Next Send: the upcoming month with Month in progress, Ready for review (review period), Cancelled or Not scheduled.
@@ -885,20 +918,21 @@ function repRefreshAgency() { renderRegion('rep-agency-body', repAgencyBody()); 
 function repAgencySearch(v) { state.ui.repSearch = v; pager('rep-agency').page = 1; repRefreshAgency(); }
 function repRenderAgency() {
   const ws = visibleWorkspaces(), count = s => ws.filter(w => repStatus(w.id) === s).length;
-  const card = (title, n) => `<div class="kpi-card"><div class="kpi-title">${title}</div><div class="kpi-value">${n}</div><div class="kpi-sub">Client workspaces</div></div>`;
+  const card = (f, title, n) => `<button type="button" class="kpi-card rep-filter-card ${state.ui.repFilter === f ? 'is-on' : ''}" aria-pressed="${state.ui.repFilter === f}" onclick="repSetFilter('${f}')" title="${state.ui.repFilter === f ? 'Show all clients' : `Show only ${esc(REP_FILTERS[f].label.toLowerCase())} clients`}"><div class="kpi-title">${title}</div><div class="kpi-value">${n}</div><div class="kpi-sub">Client workspaces${state.ui.repFilter === f ? ' · Showing only these' : ''}</div></button>`;
   return `<div class="grid-4 rep-agency-kpis rep-kpis-3">
-      ${card(repStatusDot('active'), count('active'))}${card(repStatusDot('inactive'), count('inactive'))}
-      ${card('<span class="dot-label t-error"><span class="dot dot-red-strong"></span>Last report failed</span>', ws.filter(w => repFailed(w.id)).length)}
+      ${card('active', repStatusDot('active'), count('active'))}${card('inactive', repStatusDot('inactive'), count('inactive'))}
+      ${card('failed', '<span class="dot-label t-error"><span class="dot dot-red-strong"></span>Last report failed</span>', ws.filter(w => repFailed(w.id)).length)}
     </div>
     <section class="card"><div class="card-header"><div><h2 class="h-card">Client Reports</h2><div class="card-sub">Each client can receive an SEM Report (Google Ads) and an SMM Report (Facebook, Instagram and Meta Ads) every month. Select a client to choose its sections, schedule and recipients.</div></div></div>
-      <div class="table-toolbar"><div class="search"><input class="input" placeholder="Search client workspaces" value="${esc(state.ui.repSearch)}" oninput="repAgencySearch(this.value)" aria-label="Search client workspaces"><i data-lucide="search"></i></div></div>
+      <div class="table-toolbar"><div class="search"><input class="input" placeholder="Search client workspaces" value="${esc(state.ui.repSearch)}" oninput="repAgencySearch(this.value)" aria-label="Search client workspaces"><i data-lucide="search"></i></div>
+        ${state.ui.repFilter ? `<span class="rep-filter-chip">Showing: ${esc(REP_FILTERS[state.ui.repFilter].label)}<button type="button" class="chip-remove" aria-label="Clear filter" title="Clear filter" onclick="repSetFilter('${state.ui.repFilter}')"><i data-lucide="x"></i></button></span>` : ''}</div>
       <div id="rep-agency-body">${repAgencyBody()}</div></section>`;
 }
 
 // =====================================================================
 // Client workspace: SEM Report · SMM Report · Schedule & Recipients · Sent Reports
 // =====================================================================
-const REP_TABS = [...REP_TYPE_IDS.map(t => ({ id: t, label: REP_TYPES[t].name, icon: REP_TYPES[t].icon })), { id: 'delivery', label: 'Schedule & Recipients', icon: 'send' }, { id: 'history', label: 'Sent Reports', icon: 'history' }];
+const REP_TABS = [...REP_TYPE_IDS.map(t => ({ id: t, label: REP_TYPES[t].name, icon: REP_TYPES[t].icon })), { id: 'delivery', label: 'Schedule & Recipients', icon: 'calendar-cog' }, { id: 'history', label: 'Sent Reports', icon: 'history' }];
 function repTab() {
   if (REP_TABS.some(t => t.id === state.params.tab)) return state.params.tab;
   const cfg = repConfig(state.ctx);
@@ -923,10 +957,23 @@ function repSummaryCard(ws, cfg) {
     : status === 'inactive' ? 'Add at least one recipient to start sending.'
     : repCancelled(cfg) ? `${these} won’t be sent: the send on ${fmtDateTime(repSendDate(next))} was cancelled.`
     : `${these} ${repInReview(cfg) ? `${types.length > 1 ? 'are' : 'is'} ready to review in Sent Reports, and will be sent` : 'will be sent'} on ${fmtDateTime(repSendDate(next))} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}.`;
-  const failed = repFailed(ws.id) ? `<div class="banner banner-error rep-banner"><i data-lucide="circle-alert"></i><div class="grow"><div class="banner-title">The ${esc(repMonthLabel(last.month))} email was not sent</div><div class="banner-text">${esc(last.reason)}</div></div><button type="button" class="banner-action" onclick="repGo('history')">Go to Sent Reports</button></div>` : '';
-  return `${failed}<section class="card rep-summary">
+
+  return `${repFailedBanner(ws, last)}<section class="card rep-summary">
     <div class="grow"><div class="row wrap" style="gap:12px"><h2 class="h-card">Monthly Reports</h2>${repStatusDot(status)}</div><div class="rep-summary-line">${esc(line)}</div></div>
 </section>`;
+}
+
+// The last email failed: says what to do next, with the action in the banner itself. Retry each report that couldn't
+// be generated; once none is failing, send the email. The link to Sent Reports is left out on that tab.
+function repFailedBanner(ws, last) {
+  if (!repFailed(ws.id)) return '';
+  const failing = repStillFailing(last), month = repMonthLabel(last.month);
+  const link = repTab() === 'history' ? '' : `<button type="button" class="banner-action" onclick="repGo('history')">View in Sent Reports</button>`;
+  if (!failing.length) return `<div class="banner rep-banner rep-banner-ready"><i data-lucide="send"></i><div class="grow"><div class="banner-title">The ${esc(month)} reports are ready to send</div><div class="banner-text">Every report has been regenerated. Send the email to deliver them.</div></div>
+    <div class="rep-banner-actions">${link}<button type="button" class="btn btn-primary btn-sm" onclick="repSendEmail('${last.id}')"><i data-lucide="send"></i>Send email</button></div></div>`;
+  const names = repJoin(failing.map(t => REP_TYPES[t].name));
+  return `<div class="banner banner-error rep-banner"><i data-lucide="circle-alert"></i><div class="grow"><div class="banner-title">The ${esc(month)} email was not sent</div><div class="banner-text">${esc(last.reason)} Retry the ${esc(names)}, then send the email.</div></div>
+    <div class="rep-banner-actions">${link}${failing.map(t => `<button type="button" class="btn btn-sm rep-btn-on-error" onclick="repRetry('${last.id}', '${t}')"><i data-lucide="refresh-cw"></i>Retry ${esc(REP_TYPES[t].short)}</button>`).join('')}</div></div>`;
 }
 
 // ---------- SEM / SMM Report: sections and columns (changes save as you make them) ----------
@@ -938,6 +985,8 @@ function repReportHTML(ws, cfg, type) {
   return `<section class="card">${head}
     <label class="row rep-switch rep-type-switch"><span class="toggle"><input type="checkbox" ${rep.on ? 'checked' : ''} onchange="repSetType('${type}', this.checked)"><span></span></span><span><b>Send the ${esc(t.name)} every month</b><span class="field-hint rep-block-line">${!ok ? `Off. Link ${esc(t.needs)} to this workspace first.` : rep.on ? `Attached to the monthly email with ${nOn} of ${t.sections.length} sections.` : 'Turned off: it isn’t made or sent. The sections below are kept for when you turn it on.'}</span></span></label>
     ${rep.on && !nOn ? '<div class="banner banner-warning rep-banner"><i data-lucide="triangle-alert"></i><div><div class="banner-title">Every section is off</div><div class="banner-text">Turn on at least one section, or this report won’t be sent.</div></div></div>' : ''}
+    ${rep.on ? '' : `<div class="rep-off-note"><i data-lucide="circle-pause"></i><span>${esc(`The ${t.name} is off, so none of these sections are sent. Your choices are kept for when you turn it on.`)}</span></div>`}
+    <div class="rep-blocks-head"><span class="rep-blocks-label">Sections</span>${repExpandAllHTML(ws, cfg, type)}</div>
     <ol class="rep-blocks ${rep.on ? '' : 'is-off'}">
       <li class="rep-block rep-block-fixed"><span class="rep-block-icon"><i data-lucide="lock"></i></span><div class="grow"><div class="rep-block-title">Cover page</div><div class="rep-block-meta">Always included: the client’s name, the month, the linked accounts and “Prepared by” the account manager.</div></div></li>
       ${t.sections.map(s => repSectionHTML(ws, cfg, type, s)).join('')}
@@ -951,14 +1000,41 @@ function repSectionHTML(ws, cfg, type, s) {
   const tables = s.blocks.filter(b => b.kind === 'table');
   // Last month, for the client's own data: an empty table is left out of the real report.
   const empty = on ? tables.filter(b => !repRows(ws.id, b, repLastMonth()).length) : [];
+  const open = on && repIsOpen(type, s.id);
   return `<li class="rep-block rep-section-row ${on ? '' : 'rep-block-off'}">
     <label class="toggle rep-section-toggle"><input type="checkbox" id="${id}" ${on ? 'checked' : ''} ${ok ? '' : 'disabled'} onchange="repSetSection('${type}', '${s.id}', this.checked)" aria-label="Include ${esc(s.title)}"><span></span></label>
     <div class="grow">
-      <label class="rep-block-title" for="${id}">${platformLogo(s.source)}<span>${esc(s.title)}</span></label>
+      ${on ? `<button type="button" class="rep-block-title rep-expand" aria-expanded="${open}" aria-controls="${id}-body" onclick="repToggleOpen('${type}', '${s.id}')">${platformLogo(s.source)}<span>${esc(s.title)}</span><i data-lucide="chevron-down" class="rep-chev"></i></button>
+        ${open ? '' : `<div class="rep-block-meta">${esc(repSectionSummary(cfg, type, s))}</div>`}`
+      : `<label class="rep-block-title" for="${id}">${platformLogo(s.source)}<span>${esc(s.title)}</span></label>`}
       ${on ? '' : `<div class="rep-block-meta">${ok ? esc(`Off. Contains ${s.blocks.map(repBlockLabel).join(' · ')}`) : `<span class="rep-off">${esc(REP_PLATFORM[s.source])} isn’t linked to this workspace, so this section can’t be turned on. Link it in Integrations first.</span>`}</div>`}
       ${empty.length ? `<div class="rep-block-meta rep-note"><i data-lucide="info"></i><span>${esc(`Last month: no ${repJoin(empty.map(repEmptyNoun)).replace(/ and ([^,]*)$/, ' or $1')} ran, so ${empty.length > 1 ? 'those tables were' : 'that table was'} left out. ${empty.length === tables.length && s.blocks.length === tables.length ? 'The whole section is left out of a month with nothing to show.' : ''}`.trim())}</span></div>` : ''}
-      ${on ? repSummaryHTML(cfg, type, s) + repChartsHTML(cfg, type, s) + s.blocks.filter(b => b.kind === 'table').map(b => repColsHTML(cfg, type, b)).join('') : ''}
+      ${open ? `<div id="${id}-body">${repSummaryHTML(cfg, type, s) + repChartsHTML(cfg, type, s) + s.blocks.filter(b => b.kind === 'table').map(b => repColsHTML(cfg, type, b)).join('')}</div>` : ''}
     </div></li>`;
+}
+// Sections start open; collapsed, each shows one line, e.g. "Summary cards: 8 of 10 · Charts: 1 of 1".
+state.ui.repOpen = {};
+function repIsOpen(type, sid) { return state.ui.repOpen[`${type}:${sid}`] !== false; }
+function repToggleOpen(type, sid) { state.ui.repOpen[`${type}:${sid}`] = !repIsOpen(type, sid); rerender(); }
+function repOpenSections(ws, cfg, type) { return REP_TYPES[type].sections.filter(s => repSectionOn(ws.id, cfg, type, s)); }
+function repExpandAllHTML(ws, cfg, type) {
+  const secs = repOpenSections(ws, cfg, type);
+  if (!secs.length) return '';
+  const all = secs.every(s => repIsOpen(type, s.id));
+  return `<button type="button" class="rep-expand-all" onclick="repSetAllOpen('${type}', ${!all})"><i data-lucide="${all ? 'chevrons-down-up' : 'chevrons-up-down'}"></i>${all ? 'Collapse all' : 'Expand all'}</button>`;
+}
+function repSetAllOpen(type, open) {
+  const ws = currentWs(), cfg = repConfig(ws.id);
+  repOpenSections(ws, cfg, type).forEach(s => { state.ui.repOpen[`${type}:${s.id}`] = open; });
+  rerender();
+}
+function repSectionSummary(cfg, type, s) {
+  const parts = [], summary = s.blocks.find(b => b.chart === 'summary');
+  const charts = s.blocks.filter(b => b.kind === 'chart' && b.chart !== 'summary');
+  if (summary) parts.push(`Summary cards: ${repShownCols(cfg, type, summary).length} of ${repKeys(summary).length}`);
+  if (charts.length) parts.push(`Charts: ${charts.filter(b => repChartOn(cfg, type, b)).length} of ${charts.length}`);
+  s.blocks.filter(b => b.kind === 'table').forEach(b => parts.push(`${b.title} table: ${repShownCols(cfg, type, b).length} of ${repKeys(b).length} columns`));
+  return parts.join(' · ');
 }
 // Summary cards (the big numbers) and charts of a section. A section with no table keeps at least one card or chart
 // (turn the section off instead): the last one left can't be deselected.
@@ -1019,6 +1095,7 @@ function repSetType(type, on) {
 function repSetSection(type, sid, on) {
   const rep = repRep(repConfig(state.ctx), type);
   rep.off = on ? rep.off.filter(x => x !== sid) : [...new Set([...rep.off, sid])];
+  if (on) state.ui.repOpen[`${type}:${sid}`] = true;
   rerender();
 }
 function repSetCol(type, tid, key, on) {
@@ -1037,7 +1114,6 @@ function repSet(field, value) {
 function repDeliveryHTML(ws, cfg) {
   const next = repNextMonth(cfg), types = repTypesOn(ws.id, cfg);
   const agency = members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)));
-  const clientMembers = members.filter(m => m.org === ws.id && m.status === 'active' && !cfg.to.some(r => r.email.toLowerCase() === m.email.toLowerCase()));
   const err = state.ui.repToErr || '';
   // The schedule is the same for every client and can't be changed, so it is shown as plain text, not as fields.
   return `<section class="card"><div class="card-header"><div><div class="row wrap" style="gap:10px"><h2 class="h-card">Schedule</h2><span class="rep-default-tag">Standard for all clients</span></div><div class="card-sub">Each report turned on goes out every month, with the SEM and SMM Reports together in one email. Each report covers the previous calendar month (1st to last day).</div></div></div>
@@ -1051,18 +1127,12 @@ function repDeliveryHTML(ws, cfg) {
       </div></section>
     <section class="card"><div class="card-header"><div><h2 class="h-card">Recipients</h2><div class="card-sub">The client contacts who receive the PDFs, and the agency members copied in. Up to 20 recipients.</div></div></div>
       <div class="form-section-title rep-first">To</div>
-      ${cfg.to.length ? `<div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Email</th><th></th></tr></thead><tbody>${cfg.to.map(r => `<tr><td><div class="rep-wrap-text">${esc(r.name || '—')}</div></td><td><div class="rep-wrap-text">${esc(r.email)}</div></td><td class="num"><button type="button" class="kebab" aria-label="Remove ${esc(r.email)}" title="Remove" onclick="repRemoveTo('${r.id}')"><i data-lucide="trash-2"></i></button></td></tr>`).join('')}</tbody></table></div>`
+      ${cfg.to.length ? `<div class="rep-people">${cfg.to.map(r => repPersonChip(r.name, r.email, `repRemoveTo('${r.id}')`)).join('')}</div>`
         : `<div class="banner banner-warning"><i data-lucide="triangle-alert"></i><div><div class="banner-title">No recipients</div><div class="banner-text">Add at least one, or the reports won’t be sent.</div></div></div>`}
-      <div class="rep-add">
-        <div class="field"><label class="field-label" for="rep-to-name">Name</label><input class="input" id="rep-to-name" placeholder="Optional"></div>
-        <div class="field"><label class="field-label" for="rep-to-email">Email<span class="req">*</span></label><input class="input ${err ? 'invalid' : ''}" id="rep-to-email" type="email" placeholder="name@company.com" onkeydown="if (event.key === 'Enter') repAddTo()"></div>
-        <button type="button" class="btn btn-outline" onclick="repAddTo()" ${cfg.to.length >= 20 ? 'disabled' : ''}><i data-lucide="plus"></i>Add</button>
-      </div>
-      ${err ? `<div class="field-error">${esc(err)}</div>` : ''}
-      ${clientMembers.length ? `<div class="field rep-from-members"><label class="field-label" for="rep-member">Or add a member of this workspace</label><select class="select" id="rep-member" onchange="repAddMember(this.value)"><option value="">Choose a member</option>${clientMembers.map(m => `<option value="${m.id}">${esc(m.name)} (${esc(m.email)})</option>`).join('')}</select></div>` : ''}
+      ${repComboHTML('to', 'Add a recipient', 'Type a name or email', cfg.to.length >= 20 ? 'Up to 20 recipients: remove one to add another.' : 'Choose a member of this workspace, or enter any email address. To include a name, type it as Jane Tan <jane@company.com>.', cfg.to.length >= 20, err)}
       <div class="form-section-title">CC (agency)</div>
-      <div class="row wrap">${cfg.cc.map(id => memberById(id)).filter(Boolean).map(m => `<span class="chip chip-outline rep-wrap-text">${esc(m.name)}<button type="button" class="chip-remove" aria-label="Remove ${esc(m.name)}" onclick="repSet('cc', repConfig(state.ctx).cc.filter(x => x !== '${m.id}'))"><i data-lucide="x"></i></button></span>`).join('') || '<span class="t-muted">No one is copied in.</span>'}
-        ${agency.filter(m => !cfg.cc.includes(m.id)).length ? `<select class="select rep-cc-add" aria-label="Copy in an agency member" onchange="if (this.value) repSet('cc', [...repConfig(state.ctx).cc, this.value])"><option value="">Add agency member</option>${agency.filter(m => !cfg.cc.includes(m.id)).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}</div>
+      ${cfg.cc.length ? `<div class="rep-people">${cfg.cc.map(id => memberById(id)).filter(Boolean).map(m => repPersonChip(m.name, m.email, `repRemoveCc('${m.id}')`)).join('')}</div>` : '<div class="t-muted rep-none">No one is copied in.</div>'}
+      ${agency.some(m => !cfg.cc.includes(m.id)) ? repComboHTML('cc', 'Copy in an agency member', 'Type a name', 'Agency members assigned to this client.') : ''}
     </section>
     <section class="card"><div class="card-header"><div><h2 class="h-card">Email</h2><div class="card-sub">Sent from Galaxis Reports. Replies go to the account manager.</div></div></div>
       <div class="stack-sm">
@@ -1072,22 +1142,98 @@ function repDeliveryHTML(ws, cfg) {
         <div class="rep-attach"><i data-lucide="paperclip"></i><span>${types.length ? `Attachments: ${esc(types.map(t => repFileName(ws.id, t, next)).join(', '))}` : 'No attachments: no report is turned on.'}</span></div>
       </div></section>`;
 }
-function repAddTo() {
-  const cfg = repConfig(state.ctx);
-  const name = document.getElementById('rep-to-name').value.trim(), email = document.getElementById('rep-to-email').value.trim();
-  state.ui.repToErr = !isEmail(email) ? 'Enter a valid email address.' : cfg.to.some(r => r.email.toLowerCase() === email.toLowerCase()) ? 'This email is already a recipient.' : '';
-  if (!state.ui.repToErr) { cfg.to.push({ id: uid('rr'), name, email }); showToast(`${email} added`, 'mail'); }
-  rerender();
-  if (state.ui.repToErr) { const el = document.getElementById('rep-to-email'); el.value = email; document.getElementById('rep-to-name').value = name; el.focus(); }
+// Recipient picker (To and CC): one field that suggests people as you type. To also takes any email address, with an
+// optional name ("Jane Tan <jane@company.com>"); CC only takes agency members assigned to the client.
+function repPersonChip(name, email, remove) {
+  return `<span class="rep-person"><span class="avatar">${esc(initials(name || email))}</span><span class="rep-person-text"><span class="rep-person-name">${esc(name || email)}</span>${name ? `<span class="rep-person-email">${esc(email)}</span>` : ''}</span><button type="button" class="chip-remove" aria-label="Remove ${esc(name || email)}" title="Remove" onclick="${remove}"><i data-lucide="x"></i></button></span>`;
 }
-function repAddMember(id) {
-  const m = memberById(id);
-  if (!m) return;
-  repConfig(state.ctx).to.push({ id: uid('rr'), name: m.name, email: m.email });
+function repComboHTML(kind, label, placeholder, hint, disabled, err) {
+  const id = `rep-${kind}-input`;
+  return `<div class="field rep-combo">
+    <label class="field-label" for="${id}">${esc(label)}</label>
+    <div class="rep-combo-box"><input class="input ${err ? 'invalid' : ''}" id="${id}" placeholder="${esc(placeholder)}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rep-${kind}-list" aria-autocomplete="list" ${disabled ? 'disabled' : ''}
+      oninput="repComboInput('${kind}')" onfocus="repComboOpen('${kind}')" onkeydown="repComboKey(event, '${kind}')" onblur="setTimeout(() => repComboClose('${kind}'), 150)">
+      <ul class="rep-combo-list" id="rep-${kind}-list" role="listbox" hidden></ul></div>
+    ${err ? `<div class="field-error">${esc(err)}</div>` : `<div class="field-hint">${esc(hint)}</div>`}
+  </div>`;
+}
+// "Jane Tan <jane@company.com>" → { name, email }; a bare email has no name.
+function repParsePerson(v) {
+  const m = String(v).match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  return m ? { name: m[1].replace(/^"|"$/g, ''), email: m[2].trim() } : { name: '', email: String(v).trim() };
+}
+function repComboOptions(kind) {
+  const ws = currentWs(), cfg = repConfig(ws.id), q = (document.getElementById(`rep-${kind}-input`)?.value || '').trim().toLowerCase();
+  const match = m => !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
+  if (kind === 'cc') return members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)) && !cfg.cc.includes(m.id) && match(m)).map(m => ({ id: m.id, name: m.name, email: m.email }));
+  const taken = e => cfg.to.some(r => r.email.toLowerCase() === e.toLowerCase());
+  const opts = members.filter(m => m.org === ws.id && m.status === 'active' && !taken(m.email) && match(m)).map(m => ({ name: m.name, email: m.email }));
+  const typed = repParsePerson(q ? document.getElementById(`rep-${kind}-input`).value : '');
+  if (isEmail(typed.email) && !taken(typed.email) && !opts.some(o => o.email.toLowerCase() === typed.email.toLowerCase())) opts.push({ ...typed, typed: true });
+  return opts;
+}
+state.ui.repCombo = { kind: null, active: 0, opts: [] };
+function repComboOpen(kind) {
+  const list = document.getElementById(`rep-${kind}-list`), input = document.getElementById(`rep-${kind}-input`);
+  if (!list) return;
+  const opts = repComboOptions(kind), c = state.ui.repCombo;
+  if (c.kind !== kind) c.active = 0;
+  Object.assign(c, { kind, opts, active: Math.min(c.active, Math.max(0, opts.length - 1)) });
+  list.innerHTML = opts.map((o, i) => `<li role="option" id="rep-${kind}-opt-${i}" aria-selected="${i === c.active}" class="rep-combo-opt ${i === c.active ? 'active' : ''}" onmousedown="event.preventDefault(); repComboPick('${kind}', ${i})">
+      <span class="avatar">${esc(initials(o.name || o.email))}</span><span class="rep-person-text">${o.typed ? `<span class="rep-person-name">Add ${esc(o.name ? `${o.name} (${o.email})` : o.email)}</span>` : `<span class="rep-person-name">${esc(o.name)}</span><span class="rep-person-email">${esc(o.email)}</span>`}</span></li>`).join('')
+    || `<li class="rep-combo-empty">${esc(kind === 'cc' ? 'No other agency members match.' : 'No member matches. Type a full email address to add it.')}</li>`;
+  list.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
+  if (opts.length) input.setAttribute('aria-activedescendant', `rep-${kind}-opt-${c.active}`); else input.removeAttribute('aria-activedescendant');
+}
+// Typing again clears an error from the last attempt.
+function repComboInput(kind) {
+  if (kind === 'to' && state.ui.repToErr) {
+    state.ui.repToErr = '';
+    const input = document.getElementById('rep-to-input'), err = input.closest('.rep-combo').querySelector('.field-error');
+    input.classList.remove('invalid');
+    if (err) { err.className = 'field-hint'; err.textContent = 'Choose a member of this workspace, or enter any email address. To include a name, type it as Jane Tan <jane@company.com>.'; }
+  }
+  repComboOpen(kind);
+}
+function repComboClose(kind) {
+  const list = document.getElementById(`rep-${kind}-list`), input = document.getElementById(`rep-${kind}-input`);
+  if (list) list.hidden = true;
+  if (input) { input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); }
+}
+function repComboKey(e, kind) {
+  const c = state.ui.repCombo;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (c.kind === kind && c.opts.length) c.active = (c.active + (e.key === 'ArrowDown' ? 1 : -1) + c.opts.length) % c.opts.length;
+    repComboOpen(kind);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    repComboOpen(kind);
+    if (c.opts.length) repComboPick(kind, c.active);
+    else if (kind === 'to') repComboInvalid();
+  } else if (e.key === 'Escape') repComboClose(kind);
+}
+// Enter with nothing to pick: say why it can't be added.
+function repComboInvalid() {
+  const cfg = repConfig(state.ctx), v = document.getElementById('rep-to-input').value, { email } = repParsePerson(v);
+  if (!v.trim()) return;
+  state.ui.repToErr = cfg.to.some(r => r.email.toLowerCase() === email.toLowerCase()) ? 'This email is already a recipient.' : 'Enter a valid email address, or choose a member.';
+  rerender();
+  const el = document.getElementById('rep-to-input'); el.value = v; el.focus();
+}
+function repComboPick(kind, i) {
+  const o = state.ui.repCombo.opts[i], cfg = repConfig(state.ctx);
+  if (!o) return;
+  if (kind === 'cc') cfg.cc.push(o.id);
+  else cfg.to.push({ id: uid('rr'), name: o.name, email: o.email });
   state.ui.repToErr = '';
+  state.ui.repCombo.active = 0;
   rerender();
-  showToast(`${m.email} added`, 'mail');
+  showToast(kind === 'cc' ? `${o.name} copied in` : `${o.email} added`, 'mail');
+  document.getElementById(`rep-${kind}-input`)?.focus();
 }
+function repRemoveCc(id) { repSet('cc', repConfig(state.ctx).cc.filter(x => x !== id)); }
 function repRemoveTo(id) {
   const cfg = repConfig(state.ctx);
   cfg.to = cfg.to.filter(r => r.id !== id);
@@ -1104,15 +1250,17 @@ function repHistoryHTML(ws, cfg) {
     : h.status === 'cancelled' ? `${repPill('off', 'Cancelled')}<div class="cell-sub">The send was cancelled during review</div>` : repPill('sent', 'Sent');
   return `<section class="card"><div class="card-header"><div><h2 class="h-card">Sent Reports</h2><div class="card-sub">Every monthly email, with the PDFs exactly as they were sent. A failed email is tried again daily for 3 days before it shows here as Failed.</div></div></div>
     <div class="table-wrap"><table class="table rep-history">
-      <thead><tr><th>Report Month</th><th>Reports</th><th>Status</th><th>Sent</th><th>Recipients</th><th></th></tr></thead>
+      <thead><tr><th>Report Month</th><th>Status</th><th>Sent</th><th><span class="rep-sr-only">Actions</span></th></tr></thead>
       <tbody>
         ${repUpcomingRow(ws, cfg, next, status)}
-        ${list.map(h => `<tr><td>${esc(repMonthLabel(h.month))}</td><td>${repTypeChips(h.types)}</td><td>${pill(h)}${h.reason && !ready(h) ? `<div class="cell-sub rep-wrap-text rep-reason">${esc(h.shortReason || h.reason)}</div>` : ''}</td><td>${h.sentAt ? esc(fmtDateTime(h.sentAt)) : '<span class="t-muted">Not sent</span>'}</td>
-          <td><span title="${esc(h.to.join(', '))}">${h.to.length}</span></td>
+        ${list.map(h => `<tr><td>${esc(repMonthLabel(h.month))}</td><td>${pill(h)}${h.reason && !ready(h) ? `<div class="cell-sub rep-wrap-text rep-reason">${esc(h.shortReason || h.reason)}</div>` : ''}</td><td>${h.sentAt ? esc(fmtDateTime(h.sentAt)) : '<span class="t-muted">Not sent</span>'}${repToLine(h.to)}</td>
           <td>${repHistoryActions(h)}</td></tr>`).join('')}
-        ${list.length ? '' : '<tr><td colspan="6" class="table-empty">No reports have been sent yet.</td></tr>'}
+        ${list.length ? '' : '<tr><td colspan="4" class="table-empty">No reports have been sent yet.</td></tr>'}
       </tbody></table></div></section>`;
 }
+// "To 2 recipients" under the send time (the emails on hover), so the actions have room.
+function repToLine(to) { return `<div class="cell-sub" title="${esc(to.join(', '))}">To ${to.length} ${to.length === 1 ? 'recipient' : 'recipients'}</div>`; }
+// Which reports a month had shows in its View / Retry / Preview buttons, so there is no separate Reports column.
 // Sent Reports actions in three fixed columns, so they line up on every row: SEM, SMM, then the send action.
 function repActionCells(cells) { return `<div class="rep-actions">${cells.map(c => `<div>${c || ''}</div>`).join('')}</div>`; }
 // The next report's row in Sent Reports: Month in progress (nothing to review yet), Scheduled (review period, with
@@ -1129,7 +1277,7 @@ function repUpcomingRow(ws, cfg, next, status) {
   const actions = status === 'inactive' ? '' : !review ? `<div class="rep-actions"><span class="t-muted rep-not-ready">${esc(`Preview from ${from}`)}</span></div>`
     : cancelled ? repActionCells([...preview('btn-outline'), `<button type="button" class="btn btn-outline btn-sm" onclick="repResume()"><i data-lucide="undo-2"></i>Resume send</button>`])
     : repActionCells([...preview('btn-primary'), `<button type="button" class="btn btn-outline btn-sm" onclick="repCancelSend()"><i data-lucide="ban"></i>Cancel send</button>`]);
-  return `<tr class="rep-upcoming"><td>${esc(repMonthLabel(next))}</td><td>${repTypeChips(types)}</td><td>${pill}</td><td>${status === 'inactive' || cancelled ? '<span class="t-muted">Not scheduled</span>' : esc(fmtDateTime(repSendDate(next)))}</td><td>${cfg.to.length}</td><td>${actions}</td></tr>`;
+  return `<tr class="rep-upcoming"><td>${esc(repMonthLabel(next))}</td><td>${pill}</td><td>${status === 'inactive' || cancelled ? '<span class="t-muted">Not scheduled</span>' : esc(fmtDateTime(repSendDate(next)))}${repToLine(cfg.to.map(r => r.email))}</td><td>${actions}</td></tr>`;
 }
 function repCancelSend() {
   const cfg = repConfig(state.ctx), next = repNextMonth(cfg), types = repTypesOn(state.ctx, cfg);
@@ -1278,7 +1426,7 @@ ${common}
 ### Key functional specifications
 ${body}
 ${extra}` });
-  const summary = `- **Summary card (all tabs):** status, one line on the next send ("The November 2026 SEM and SMM reports will be sent on 3 Dec 2026, 12:00 to 2 recipients"). A failed latest email shows a red banner with the reason and a link to Sent Reports, where the failed report can be retried.`;
+  const summary = `- **Summary card (all tabs):** status, one line on the next send ("The November 2026 SEM and SMM reports will be sent on 3 Dec 2026, 12:00 to 2 recipients"). A failed latest email shows a red banner with the reason, what to do ("Retry the SEM Report, then send the email") and a **Retry SEM** / **Retry SMM** button for each report still failing, plus a "View in Sent Reports" link (left out on that tab). Once every report is regenerated the banner turns blue, "The October 2026 reports are ready to send", with **Send email**.`;
   const report = type => spec(`Reports › ${REP_TYPES[type].name} (Client workspace, agency only)`, `Turn the ${REP_TYPES[type].name} on or off for this client, and choose which of its fixed sections and table columns are included.`, `
 ${summary}
 - **No set-up step:** every client workspace has this page, with both reports off to begin with. Every section and column starts on. Recipients start with the workspace Owner and a marketing@ address; the account manager is copied in.
@@ -1286,7 +1434,8 @@ ${summary}
 - **Send the ${REP_TYPES[type].name} every month:** on/off. Off keeps the section choices.
 - **Defaults for a new client (general):** on: SEM Overall performance, Campaign performance, Conversion type breakdown, Age and gender, the Search sections (Search campaigns, ad groups, keywords, search terms, search ads: every SEM client runs Search); SMM Facebook Page, Facebook posts, Instagram, Instagram posts, Meta Ads and All Ads (a table of every Meta ad that ran, right below Meta Ads). Off until the AM turns them on: every other campaign-type section (Performance Max, Demand Gen, Display, YouTube, App install; Meta Awareness, Traffic, Engagement, Lead generation, Sales).
 - **Daily charts:** every campaign-type section offers the same two: Impressions and clicks by day, and Conversions and cost per conversion by day (Meta: Impressions and link clicks by day only, as the sheet has no conversions for Meta). They start on where the sample report had daily charts (Search and Performance Max). Overall performance also has Impressions and clicks by day, for all campaigns.
-- **Sections** (fixed order, fixed headings): the Cover page is always included. Each section has an on/off switch, its platform and what it contains. A section whose source isn't linked is greyed out with the switch disabled and a link to Integrations. With every section off, a warning says the report won't be sent.
+- **Sections** (fixed order, fixed headings): the Cover page is always included. Each section has an on/off switch, its platform and what it contains. Sections that are on start **open**; each can be collapsed to one line summarising what's in it ("Summary cards: 8 of 10 · Charts: 1 of 1", "Search campaigns table: 13 of 13 columns"); clicking the title (or its chevron) opens the chips. **Expand all / Collapse all** sits above the list. Turning a section on opens it.
+- **Report off:** the sections stay editable, but their switches and chips turn grey and a note says "The SEM Report is off, so none of these sections are sent. Your choices are kept for when you turn it on."  A section whose source isn't linked is greyed out with the switch disabled and a link to Integrations. With every section off, a warning says the report won't be sent.
 - **Each section that is on shows, in PDF order:** Summary cards, then Charts, then each table's columns.
 - **Summary cards** (the big numbers at the top of a section; Looker Studio calls them scorecards): no switch, always part of the section. The numbers are on/off chips in a fixed order; deselecting every chip leaves the cards out. In the PDF they have no title.
 - **Charts:** on/off chips (e.g. Impressions and clicks by day).
@@ -1301,7 +1450,7 @@ ${summary}
 ${outline(type)}`, sources + (type === 'smm' ? connection : ''));
   Object.assign(screenSpecs, {
     'agency-reports': spec('Reports — Client Reports (Agency)', 'Every client workspace the AM can see, with the state of its monthly reports, so nothing is missed: which clients have no reports, which are paused and which failed last month.', `
-- **KPI cards:** count of workspaces that are Active, Inactive, and whose last report failed.
+- **KPI cards:** count of workspaces that are Active, Inactive, and whose last report failed. Each card is also a **filter**: click it to show only those clients (the card is highlighted, "Showing only these", and a "Showing: Last report failed ×" chip sits by the search); click it again or the × to show all.
 - **Table:** Client Workspace, Linked (logos of the linked sources, or "Nothing linked"), Reports (SEM / SMM tags for the reports turned on, or None), Next Send ("November 2026 Report", then a pill: Month in progress (grey) / Ready for review (amber, during the review period) / Cancelled (red) / Not scheduled (grey, with the reason), and the send date and time), Last Sent ("October 2026 Report", then Sent with the date, or Failed), and a **Review** button during the review period. No Status column: the Reports and Next Send columns show it. Sort by name (default) or next send. Search by name, 10 per page.
 - **Statuses:** Active (green: a report is on and there is at least 1 recipient) · Inactive (grey), with the reason underneath: No report is turned on / No recipients. A failed latest email shows "Last report failed" in red under the status. Inactive workspaces stay in the list, so the AM can see which clients still need a report.
 - Selecting a row opens that workspace's Reports page.`),
@@ -1311,8 +1460,8 @@ ${outline(type)}`, sources + (type === 'smm' ? connection : ''));
 ${summary}
 - **One email for both reports:** the SEM and SMM Reports turned on are attached to the same monthly email.
 - **Schedule:** no on/off switch here: each report turned on (SEM / SMM tabs) is sent every month. **Sent on** (the 3rd of each month) and **At** (12:00 pm Singapore time) are shown as plain text with a "Standard for all clients" tag and a note that they can't be changed; they are not form fields: the same for every client, so most late conversions have come in. Each report covers the previous calendar month. The PDFs are made just before sending and their numbers are frozen.
-- **Recipients — To:** client contacts (name optional, email required, valid and not duplicated), up to 20; or add a member of the workspace. Without recipients nothing is sent and the status is Inactive.
-- **Recipients — CC:** agency members assigned to the workspace.
+- **Recipients — To:** client contacts, up to 20, shown as chips (initials, name, email, remove ×). One **Add a recipient** field suggests workspace members as you type (arrow keys and Enter, or click) and also takes any valid email, with an optional name typed as "Jane Tan <jane@company.com>". An invalid or duplicate email shows an error under the field, cleared as soon as you type again. Without recipients nothing is sent and the status is Inactive.
+- **Recipients — CC:** agency members assigned to the workspace, as chips, added with the same kind of field (**Copy in an agency member**), which only suggests agency members.
 - **Email:** account manager (cover "Prepared by" and reply-to), subject and message with {client}, {month} and {am} placeholders and a live subject preview; attachments \`{Client}_SEM-Report_{YYYY-MM}.pdf\` and \`{Client}_SMM-Report_{YYYY-MM}.pdf\`. Sent from a Galaxis no-reply address.
 - **Failures:** if a source's data can't be fetched (e.g. an expired connection), nothing is sent with missing data. It is tried again daily for 3 days, then marked Failed and the AM is notified.
 - **PDPA:** recipient emails are personal data: only stored for sending, removed with the workspace; the prototype uses placeholder addresses only.`),
@@ -1322,8 +1471,8 @@ ${summary}
 - **Agency list:** clients in the review period have a **Review** button that opens their Sent Reports tab, and Next Send shows a "Ready for review" pill with "Sends 3 Dec 2026, 12:00" (or "Cancelled").
 - Dev toggle **Review period (1st of next month)** shows this state.
 - **Prototype data:** Visual Studio's history shows one of each past status: October Failed (Retry SEM), September Ready to send (the SEM Report was regenerated), August Cancelled (Send email), and July Sent.
-- Each past email: month, reports attached (SEM / SMM), status (Sent / Failed with the reason), sent date and time, recipient count (hover for the addresses). Actions: **View SEM** / **View SMM** (the stored PDF, with the client's real data) and **Resend email** (confirmation, then sends to the current recipients).
-- **A failed email** means a report couldn't be generated (e.g. Google Ads data couldn't be fetched); the email is held, not sent with a missing report. The row has **Retry SEM** / **Retry SMM** for each report that failed (regenerates just that report; the others show **View**), and **Send email**, disabled until no report is still failing. Once every report is regenerated the row shows **Ready to send**. The red banner on every tab links to Sent Reports until the email is sent.`),
+- Each past email: month, status (Sent / Failed with the reason), sent date and time with "To 2 recipients" underneath (hover for the addresses). Which reports were attached shows in the row's View / Retry buttons, so there is no separate Reports or Recipients column: the table and its three action columns fit without scrolling down to a 1180px-wide window. Actions: **View SEM** / **View SMM** (the stored PDF, with the client's real data) and **Resend email** (confirmation, then sends to the current recipients).
+- **A failed email** means a report couldn't be generated (e.g. Google Ads data couldn't be fetched); the email is held, not sent with a missing report. The row has **Retry SEM** / **Retry SMM** for each report that failed (regenerates just that report; the others show **View**), and **Send email**, disabled until no report is still failing. Once every report is regenerated the row shows **Ready to send**. The banner on every tab has the Retry buttons, then Send email, until the email is sent.`),
     'client-reports-sample': spec('Reports › Preview with sample data (Client workspace, agency only)', 'Check the layout of a report, with the sections and columns turned on for this client, without showing real data.', `
 - Opened from **Preview with sample data** on the SEM or SMM Report tab. Link: \`report=sem|smm&preview=sample\`.
 - **Sample data:** made-up names (Lorem ipsum campaign 1, Dolor sit ad group 2…), lorem ipsum captions, search ad text and conversion actions, example.com links, mock numbers for last month. "Sample data" shows on the cover, on every page header, in the file name (\`…_SAMPLE\`) and in the viewer.
