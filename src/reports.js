@@ -76,15 +76,13 @@ const REP_ORG_COLS = {
 };
 function repAllCols(p) { return ADS_PF_COLS[p] || REP_ORG_COLS[p]; }
 // Placeholder columns for campaign types whose columns aren't decided yet. Shown as "—" in the PDF.
-const REP_TBD_COLS = [1, 2, 3, 4, 5].map(n => ({ key: `tbd${n}`, label: 'Mindy TBD 🙇🏻‍♀️', t: 'tbd' }));
-const REP_TBD = REP_TBD_COLS.map(c => c.key);
-function repCol(p, key) { return repAllCols(p).find(c => c.key === key) || REP_TBD_COLS.find(c => c.key === key); }
+function repCol(p, key) { return repAllCols(p).find(c => c.key === key); }
 function repColLabel(p, key) { return repCol(p, key)?.label || key; }
 function repFmt(p, key, v) { const c = repCol(p, key); return !c ? fmtNum(v) : ADS_PF_FMT[c.t] ? ADS_PF_FMT[c.t](v) : String(v ?? '—'); }
 
 // Breakdown values as each platform reports them (mock shares are generated per workspace and month).
 const REP_DIMS = {
-  age: { google: ['18–24', '25–34', '35–44', '45–54', '55–64', '65+'], meta: ['18–24', '25–34', '35–44', '45–54', '55–64', '65+'], instagram: ['13–17', '18–24', '25–34', '35–44', '45–54', '55–64', '65+'] },
+  age: { google: ['18–24', '25–34', '35–44', '45–54', '55–64', '65+', 'Unknown'], meta: ['18–24', '25–34', '35–44', '45–54', '55–64', '65+'], instagram: ['13–17', '18–24', '25–34', '35–44', '45–54', '55–64', '65+'] },
   convActions: { google: ['Form submission', 'WhatsApp click', 'Calls from ads', 'Website phone click'] }
 };
 
@@ -95,14 +93,14 @@ const REP_DIMS = {
 // Table: { id, kind: 'table', platform, category, rows, title, cols (every column it can show, in order), limit }.
 // Columns are in the order things happen: reach and impressions, then clicks, cost, video, conversions, value, then
 // impression share. A table is sorted by the first number column turned on (e.g. Impr., else Clicks, else CTR),
-// highest first; a table with only placeholder columns is sorted by impressions.
+// highest first; a table with no number column turned on is sorted by impressions.
 // Chart: { id, kind: 'chart', chart, platform, category, title, metric, metric2, metrics (summary cards it can show, in order), off (of those, off until the AM turns them on) }
 // Defaults for a new client are general: the summary, all-campaign and Search sections are on (every SEM client runs Search); sections and charts marked
 // hidden (campaign types, detail tables) start off, for the AM to turn on where they apply.
 // =====================================================================
 // off: columns that start off, for the AM to turn on.
 function repT(id, platform, category, rows, title, cols, o = {}) { return { id, kind: 'table', platform, category, rows, title, cols, limit: o.limit || 0, off: o.off }; }
-function repSortKey(p, cols) { const num = k => !['text', 'status', 'tbd'].includes(repCol(p, k)?.t); return cols.find(num) || 'impressions'; }
+function repSortKey(p, cols) { const num = k => !['text', 'status'].includes(repCol(p, k)?.t); return cols.find(num) || 'impressions'; }
 function repC(id, chart, platform, title, o = {}) { return { id, kind: 'chart', chart, platform, category: 'all', title, ...o }; }
 // The same optional daily charts in every campaign-type section. hidden: off until the AM turns it on. Meta has no
 // conversions chart: the metrics sheet has no conversions for Meta.
@@ -116,10 +114,14 @@ const REP_G_SEARCH = ['impressions', 'clicks', 'ctr', 'cpc', 'spend', 'conversio
 const REP_G_PMAX = ['impressions', 'clicks', 'ctr', 'cpc', 'spend', 'conversions', 'cvr', 'cpa', 'convValue', 'pRoas'];
 const REP_G_DEMANDGEN = ['impressions', 'clicks', 'ctr', 'cpc', 'cpm', 'spend', 'conversions', 'cpa', 'convValue', 'pRoas'];
 const REP_G_DISPLAY = ['impressions', 'viewImpr', 'clicks', 'ctr', 'cpc', 'spend', 'conversions', 'vtc', 'cpa'];
-const REP_G_YOUTUBE = ['impressions', 'reach', 'freq', 'vViews', 'viewRate', 'v25r', 'v50r', 'v75r', 'v100r', 'clicks', 'ctr', 'cpv', 'cpm', 'spend', 'conversions', 'cvr', 'cpa', 'pRoas'];
+const REP_G_YOUTUBE = ['impressions', 'reach', 'avgFreq', 'freq', 'vViews', 'viewRate', 'v25r', 'v50r', 'v75r', 'v100r', 'clicks', 'ctr', 'cpv', 'cpm', 'spend', 'conversions', 'cvr', 'cpa', 'pRoas'];
 const REP_G_APP = ['impressions', 'clicks', 'spend', 'installs', 'cpInstall', 'inApp', 'cpInApp'];
 const REP_M_AWARENESS = ['reach', 'impressions', 'freq', 'recall', 'allClicks', 'clicks', 'ctrAll', 'ctr', 'cpm', 'thruplays', 'cpThru', 'spend'];
 const REP_M_TRAFFIC = ['reach', 'impressions', 'freq', 'allClicks', 'clicks', 'ctrAll', 'ctr', 'cpc', 'lpv', 'cplpv', 'cpm', 'spend'];
+const REP_M_ENGAGEMENT = ['reach', 'viewers', 'impressions', 'views', 'freq', 'engagements', 'pageEng', 'engRate', 'interactions', 'reactions', 'comments', 'saves', 'shares', 'fbLikes', 'igFollows',
+  'allClicks', 'clicks', 'ctrAll', 'ctr', 'cpc', 'cpm', 'spend', 'plays3s', 'thruplays', 'msgs', 'cpMsg'];
+const REP_M_LEADS = ['reach', 'impressions', 'freq', 'allClicks', 'clicks', 'ctrAll', 'ctr', 'cpc', 'lpv', 'cplpv', 'cpm', 'spend', 'msgs', 'cpMsg', 'pLeads', 'cpLead', 'purchases', 'convValue', 'pRoas'];
+const REP_M_SALES = ['reach', 'impressions', 'freq', 'allClicks', 'clicks', 'ctrAll', 'ctr', 'cpc', 'lpv', 'cpm', 'spend', 'purchases', 'convValue', 'pRoas'];
 const REP_RSA_NOTE = 'Google combines each search ad’s headlines and descriptions automatically, so an ad’s results cover every combination it showed. The text below is the ad as written.';
 const REP_TYPES = {
   sem: { id: 'sem', name: 'SEM Report', short: 'SEM', icon: 'search-check', file: 'SEM-Report', needs: 'a Google Ads account', needsShort: 'Google Ads', desc: 'Search engine marketing: the client’s Google Ads campaigns, search ads, keywords and search terms.', sections: [
@@ -127,8 +129,15 @@ const REP_TYPES = {
       repC('g-kpis', 'summary', 'google', 'Summary cards', { metrics: ['impressions', 'clicks', 'ctr', 'cpc', 'spend', 'is', 'conversions', 'cvr', 'cpa', 'convValue'], off: ['cpa', 'convValue'] }),
       repC('g-trend', 'trend', 'google', 'Impressions and clicks by day', { metric: 'impressions', metric2: 'clicks' })] },
     { id: 'campaigns', title: 'Campaign Performance', source: 'google', blocks: [
-      repC('g-bycamp', 'byCampaign', 'google', 'Conversions by campaign', { metric: 'conversions' }),
-      repC('g-demo', 'demo', 'google', 'Clicks by age and gender', { metric: 'clicks' })] },
+      repC('g-bycamp', 'byCampaign', 'google', 'Conversions by campaign', { metric: 'conversions' })] },
+    // As in the sample SEM report: each campaign, with its conversions split by conversion action underneath.
+    { id: 'convTypes', title: 'Conversion Type Breakdown', source: 'google', blocks: [repT('g-conv-types', 'google', 'all', 'convType', 'Conversions by campaign and conversion action', ['conversions'])] },
+    // Google Ads can't group by age and gender in one query, so each gets its own chart. quad: four charts to a page.
+    { id: 'demographics', title: 'Age and Gender', note: 'Google Ads reports age and gender separately, so each has its own chart.', source: 'google', blocks: [
+      repC('g-age-clicks', 'age', 'google', 'Clicks by age', { metric: 'clicks', quad: true }),
+      repC('g-gender-clicks', 'gender', 'google', 'Clicks by gender', { metric: 'clicks', quad: true }),
+      repC('g-age-conv', 'age', 'google', 'Conversions by age', { metric: 'conversions', quad: true }),
+      repC('g-gender-conv', 'gender', 'google', 'Conversions by gender', { metric: 'conversions', quad: true })] },
     { id: 'search', title: 'Search Campaigns', source: 'google', blocks: [
       ...repTrends('g-s', 'google', 'search', false),
       repT('g-s-camps', 'google', 'search', 'campaign', 'Search campaigns', REP_G_SEARCH)] },
@@ -147,8 +156,6 @@ const REP_TYPES = {
     { id: 'display', hidden: true, title: 'Display Campaigns', source: 'google', blocks: [...repTrends('g-d', 'google', 'display', true), repT('g-d-camps', 'google', 'display', 'campaign', 'Display campaigns', REP_G_DISPLAY)] },
     { id: 'youtube', hidden: true, title: 'YouTube Campaigns', source: 'google', blocks: [...repTrends('g-yt', 'google', 'youtube', true), repT('g-yt-camps', 'google', 'youtube', 'campaign', 'YouTube campaigns', REP_G_YOUTUBE)] },
     { id: 'app', hidden: true, title: 'App Install Campaigns', source: 'google', blocks: [...repTrends('g-app', 'google', 'app', true), repT('g-app-camps', 'google', 'app', 'campaign', 'App install campaigns', REP_G_APP)] },
-    // As in the sample SEM report: each campaign, with its conversions split by conversion action underneath.
-    { id: 'convTypes', title: 'Conversion Type Breakdown', source: 'google', blocks: [repT('g-conv-types', 'google', 'all', 'convType', 'Conversions by campaign and conversion action', ['conversions'])] },
   ] },
   smm: { id: 'smm', name: 'SMM Report', short: 'SMM', icon: 'thumbs-up', file: 'SMM-Report', needs: 'a Facebook Page, Instagram account or Meta Ads account', needsShort: 'Meta', desc: 'Social media marketing: the client’s Facebook Page and Instagram posts and followers, and their Meta Ads.', sections: [
     { id: 'facebook', title: 'Facebook Page', note: 'Your Facebook Page this month.', source: 'facebook', blocks: [
@@ -170,9 +177,9 @@ const REP_TYPES = {
       repT('m-ads', 'meta', 'all', 'ad', 'Ads', ['reach', 'impressions', 'clicks', 'ctr', 'cpc', 'spend'])] },
     { id: 'metaAwareness', hidden: true, title: 'Awareness Campaigns', source: 'meta', blocks: [...repTrends('m-aw', 'meta', 'awareness', true), repT('m-aw-camps', 'meta', 'awareness', 'campaign', 'Awareness campaigns', REP_M_AWARENESS)] },
     { id: 'metaTraffic', hidden: true, title: 'Traffic Campaigns', source: 'meta', blocks: [...repTrends('m-tr', 'meta', 'traffic', true), repT('m-tr-camps', 'meta', 'traffic', 'campaign', 'Traffic campaigns', REP_M_TRAFFIC)] },
-    { id: 'metaEngagement', hidden: true, title: 'Engagement Campaigns', source: 'meta', blocks: [...repTrends('m-en', 'meta', 'engagement', true), repT('m-en-camps', 'meta', 'engagement', 'campaign', 'Engagement campaigns', REP_TBD)] },
-    { id: 'metaLeads', hidden: true, title: 'Lead Generation Campaigns', source: 'meta', blocks: [...repTrends('m-ld', 'meta', 'leads', true), repT('m-ld-camps', 'meta', 'leads', 'campaign', 'Lead generation campaigns', REP_TBD)] },
-    { id: 'metaSales', hidden: true, title: 'Sales Campaigns', source: 'meta', blocks: [...repTrends('m-sa', 'meta', 'sales', true), repT('m-sa-camps', 'meta', 'sales', 'campaign', 'Sales campaigns', REP_TBD)] },
+    { id: 'metaEngagement', hidden: true, title: 'Engagement Campaigns', source: 'meta', blocks: [...repTrends('m-en', 'meta', 'engagement', true), repT('m-en-camps', 'meta', 'engagement', 'campaign', 'Engagement campaigns', REP_M_ENGAGEMENT)] },
+    { id: 'metaLeads', hidden: true, title: 'Lead Generation Campaigns', source: 'meta', blocks: [...repTrends('m-ld', 'meta', 'leads', true), repT('m-ld-camps', 'meta', 'leads', 'campaign', 'Lead generation campaigns', REP_M_LEADS)] },
+    { id: 'metaSales', hidden: true, title: 'Sales Campaigns', source: 'meta', blocks: [...repTrends('m-sa', 'meta', 'sales', true), repT('m-sa-camps', 'meta', 'sales', 'campaign', 'Sales campaigns', REP_M_SALES)] },
   ] }
 };
 const REP_TYPE_IDS = Object.keys(REP_TYPES);
@@ -363,6 +370,12 @@ function repDemo(wsId, p, month, metric) {
     return { label: a.label, female: a.value * f * (1 - u), male: a.value * (1 - f) * (1 - u) };
   });
 }
+// Gender on its own (Google reports it apart from age): women, men and unknown, adding up to the month's total.
+function repGender(wsId, p, month, metric) {
+  const total = repTotals(wsId, p, month)[metric] || 0, r = adsRng(`${wsId}:${p}:${month}:${metric}:gender`);
+  const f = 0.4 + r() * 0.25, u = 0.03 + r() * 0.05;
+  return [{ label: 'Female', value: total * f * (1 - u), ink: REP_INK.female }, { label: 'Male', value: total * (1 - f) * (1 - u), ink: REP_INK.male }, { label: 'Unknown', value: total * u, ink: REP_INK.unknown }];
+}
 // Daily values adding up to the month's total (weekends a little lower). Followers are a running count instead.
 // Cost per conversion is worked out each day from that day's cost and conversions.
 function repDaily(wsId, p, month, metric, category) {
@@ -469,6 +482,13 @@ function repSeed(wsId) {
   for (let m = '2026-07'; repSendDate(m) <= repToday(); m = repAddMonths(m, 1)) {
     hist.unshift({ id: uid('rh'), month: m, sentAt: new Date(repSendDate(m).getTime() + 3 * 60000).toISOString(), to: cfg.to.map(r => r.email), status: 'sent', types });
   }
+  // One of each past status, newest first: Failed (the SEM Report couldn't be generated), Ready to send (it failed and
+  // has since been regenerated), Cancelled (the AM cancelled the send during review), then Sent.
+  const failure = { sentAt: null, failedTypes: ['sem'], shortReason: 'SEM Report couldn’t be generated: Google Ads data unavailable.',
+    reason: 'The SEM Report couldn’t be generated: Google Ads data could not be fetched (Google returned a temporary error). Tried again 3 times over 3 days. The email was held.' };
+  if (hist[0]) Object.assign(hist[0], failure, { status: 'failed' });
+  if (hist[1]) { Object.assign(hist[1], failure, { status: 'failed' }); repRetried[hist[1].id] = ['sem']; }
+  if (hist[2]) Object.assign(hist[2], { status: 'cancelled', sentAt: null });
   repHistories[wsId] = hist;
   return cfg;
 }
@@ -479,12 +499,10 @@ function repConfig(wsId) {
 function repHistory(wsId) {
   repConfig(wsId);
   const list = repHistories[wsId] || (repHistories[wsId] = []);
-  // Dev toggle "Last report failed": show the latest entry as failed.
-  // failedTypes: the reports that couldn't be generated (here the SEM Report, as Google Ads data couldn't be fetched).
-  if (state.flags.repFailed && list.length && list[0].status !== 'failed') return [{ ...list[0], status: 'failed', sentAt: null, failedTypes: ['sem'], shortReason: 'SEM Report couldn’t be generated: Google Ads data unavailable.', reason: 'The SEM Report couldn’t be generated: Google Ads data could not be fetched (Google returned a temporary error). Tried again 3 times over 3 days. The email was held.' }, ...list.slice(1)];
   return list;
 }
-// Reports regenerated by the AM after a failure, by history entry id. A failed email can be sent once none is still failing.
+// History entry status: sent | failed (failedTypes: the reports that couldn't be generated; the email is held) |
+// cancelled (the AM cancelled the send). Reports regenerated by the AM after a failure, by history entry id. A failed email can be sent once none is still failing.
 const repRetried = {};
 function repStillFailing(h) { return (h.failedTypes || []).filter(t => !(repRetried[h.id] || []).includes(t)); }
 // A report's settings, and what goes in it for this client.
@@ -534,7 +552,8 @@ function repJoin(list) { return list.length > 1 ? `${list.slice(0, -1).join(', '
 // =====================================================================
 // PDF: pages (A4 landscape, 1123 × 794 px at 96 dpi), charts as inline SVG
 // =====================================================================
-const REP_INK = { google: '#398FF7', meta: '#225694', facebook: '#0866FF', instagram: '#C13584', second: '#F59E1B', female: '#398FF7', male: '#F59E1B', grid: '#EAEAEA', text: '#656565' };
+// Report palette, after OOm's brand: wine for the main series, slate for a second, blush tints behind.
+const REP_INK = { google: '#A51F4E', meta: '#A51F4E', facebook: '#A51F4E', instagram: '#A51F4E', second: '#3E5468', female: '#A51F4E', male: '#3E5468', unknown: '#968A8F', grid: '#EEE7E9', text: '#6B6266', ink: '#2A2326', band: '#FBEFF3', bandText: '#7A1739' };
 function repShort(v, key, p) {
   const c = repCol(p || 'google', key);
   if (c && c.t === 'pct') return `${Number(v).toFixed(1)}%`;
@@ -557,8 +576,8 @@ function repSvgLine(points, p, key, points2, key2, marks = []) {
   const ticks = [0, 0.25, 0.5, 0.75, 1];
   const c1 = REP_INK[p], c2 = REP_INK.second;
   const multi = points.some(pt => pt.date && !pt.cur), from = points.findIndex(pt => pt.cur);
-  const band = multi && from > 0 ? `<rect x="${((x(from - 1) + x(from)) / 2).toFixed(1)}" y="${T}" width="${(W - R - (x(from - 1) + x(from)) / 2).toFixed(1)}" height="${H - T - B}" fill="#E3EEFC"/>
-    <text x="${((x(from - 1) + x(from)) / 2 + 8).toFixed(1)}" y="${T + 14}" font-size="11" font-weight="700" fill="#225694">${esc(repMonthLabel(points[from].date.slice(0, 7)))}</text>` : '';
+  const band = multi && from > 0 ? `<rect x="${((x(from - 1) + x(from)) / 2).toFixed(1)}" y="${T}" width="${(W - R - (x(from - 1) + x(from)) / 2).toFixed(1)}" height="${H - T - B}" fill="${REP_INK.band}"/>
+    <text x="${((x(from - 1) + x(from)) / 2 + 8).toFixed(1)}" y="${T + 14}" font-size="11" font-weight="700" fill="${REP_INK.bandText}">${esc(repMonthLabel(points[from].date.slice(0, 7)))}</text>` : '';
   const tick = (pt, i) => multi ? pt.day === 1 || (pt.day === 15 && points.length <= 125) : i % 5 === 0 || i === points.length - 1;
   return `<svg class="rep-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(repColLabel(p, key))}${key2 ? ` and ${esc(repColLabel(p, key2))}` : ''} by day">
     ${band}
@@ -569,22 +588,38 @@ function repSvgLine(points, p, key, points2, key2, marks = []) {
     ${points2 ? '' : `<path d="${path(points, max)} L${x(points.length - 1)},${y(lo, max)} L${x(0)},${y(lo, max)}Z" fill="${c1}" opacity=".10"/>`}
     <path d="${path(points, max)}" fill="none" stroke="${c1}" stroke-width="2.5"/>
     ${points2 ? `<path d="${path(points2, max2)}" fill="none" stroke="${c2}" stroke-width="2.5" stroke-dasharray="7 5"/>
-      <line x1="${L}" x2="${L + 24}" y1="${H - 8}" y2="${H - 8}" stroke="${c1}" stroke-width="2.5"/><text x="${L + 30}" y="${H - 4}" font-size="11" fill="#2B2B2B">${esc(repColLabel(p, key))} (left)</text>
-      <line x1="${L + 260}" x2="${L + 284}" y1="${H - 8}" y2="${H - 8}" stroke="${c2}" stroke-width="2.5" stroke-dasharray="7 5"/><text x="${L + 290}" y="${H - 4}" font-size="11" fill="#2B2B2B">${esc(repColLabel(p, key2))} (right)</text>` : ''}
-    ${marks.length ? `<line x1="${L}" x2="${L + 24}" y1="${H - 8}" y2="${H - 8}" stroke="${c1}" stroke-width="2.5"/><text x="${L + 30}" y="${H - 4}" font-size="11" fill="#2B2B2B">${esc(repColLabel(p, key))}</text>
-      <circle cx="${L + 210}" cy="${H - 8}" r="3.5" fill="${c1}"/><line x1="${L + 210}" x2="${L + 210}" y1="${H - 18}" y2="${H - 8}" stroke="${c1}" stroke-opacity=".4"/><text x="${L + 220}" y="${H - 4}" font-size="11" fill="#2B2B2B">A post went live</text>` : ''}
+      <line x1="${L}" x2="${L + 24}" y1="${H - 8}" y2="${H - 8}" stroke="${c1}" stroke-width="2.5"/><text x="${L + 30}" y="${H - 4}" font-size="11" fill="${REP_INK.ink}">${esc(repColLabel(p, key))} (left)</text>
+      <line x1="${L + 260}" x2="${L + 284}" y1="${H - 8}" y2="${H - 8}" stroke="${c2}" stroke-width="2.5" stroke-dasharray="7 5"/><text x="${L + 290}" y="${H - 4}" font-size="11" fill="${REP_INK.ink}">${esc(repColLabel(p, key2))} (right)</text>` : ''}
+    ${marks.length ? `<line x1="${L}" x2="${L + 24}" y1="${H - 8}" y2="${H - 8}" stroke="${c1}" stroke-width="2.5"/><text x="${L + 30}" y="${H - 4}" font-size="11" fill="${REP_INK.ink}">${esc(repColLabel(p, key))}</text>
+      <circle cx="${L + 210}" cy="${H - 8}" r="3.5" fill="${c1}"/><line x1="${L + 210}" x2="${L + 210}" y1="${H - 18}" y2="${H - 8}" stroke="${c1}" stroke-opacity=".4"/><text x="${L + 220}" y="${H - 4}" font-size="11" fill="${REP_INK.ink}">A post went live</text>` : ''}
   </svg>`;
 }
 // Horizontal bars. items: [{ label, value }].
-function repSvgBars(items, p, key) {
-  const W = 1000, row = 24, L = 230, H = items.length * row + 4;
+function repSvgBars(items, p, key, W = 1000, L = 230, row = 24) {
+  const H = items.length * row + 4, bh = Math.min(row - 9, 22);
   const max = Math.max(...items.map(i => i.value), 1);
   return `<svg class="rep-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(repColLabel(p, key))} breakdown">
     ${items.map((it, i) => {
-      const w = (W - L - 110) * it.value / max, yy = i * row + 2;
-      return `<text x="${L - 10}" y="${yy + 16}" text-anchor="end" font-size="12" fill="#2B2B2B">${esc(it.label.length > 34 ? it.label.slice(0, 33) + '…' : it.label)}</text>
-        <rect x="${L}" y="${yy + 4}" width="${Math.max(2, w).toFixed(1)}" height="${row - 9}" rx="3" fill="${REP_INK[p]}"/>
-        <text x="${L + w + 8}" y="${yy + 16}" font-size="12" fill="${REP_INK.text}">${esc(repFmt(p, key, it.value))}</text>`;
+      const w = (W - L - 110) * it.value / max, yy = i * row + 2, ty = yy + row / 2 + 4;
+      return `<text x="${L - 10}" y="${ty}" text-anchor="end" font-size="12" fill="${REP_INK.ink}">${esc(it.label.length > 34 ? it.label.slice(0, 33) + '…' : it.label)}</text>
+        <rect x="${L}" y="${yy + (row - bh) / 2}" width="${Math.max(2, w).toFixed(1)}" height="${bh}" rx="3" fill="${it.ink || REP_INK[p]}"/>
+        <text x="${L + w + 8}" y="${ty}" font-size="12" fill="${REP_INK.text}">${esc(repFmt(p, key, it.value))}</text>`;
+    }).join('')}
+  </svg>`;
+}
+// Columns, one per item, with the value on top. Half width: four to a page.
+function repSvgCols(items, p, key) {
+  const W = 500, H = 220, L = 10, B = 26, T = 20;
+  const max = Math.max(...items.map(i => i.value), 1);
+  const gw = (W - L * 2) / items.length, bw = Math.min(44, gw * 0.62);
+  const y = v => T + (H - T - B) * (1 - v / max);
+  return `<svg class="rep-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(repColLabel(p, key))} by age">
+    <line x1="${L}" x2="${W - L}" y1="${y(0)}" y2="${y(0)}" stroke="${REP_INK.grid}"/>
+    ${items.map((it, i) => {
+      const cx = L + gw * i + gw / 2;
+      return `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y(it.value).toFixed(1)}" width="${bw.toFixed(1)}" height="${(y(0) - y(it.value)).toFixed(1)}" rx="3" fill="${it.ink || REP_INK[p]}"/>
+        <text x="${cx}" y="${(y(it.value) - 6).toFixed(1)}" text-anchor="middle" font-size="11" fill="${REP_INK.text}">${esc(repShort(it.value, key, p))}</text>
+        <text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="12" fill="${REP_INK.ink}">${esc(it.label)}</text>`;
     }).join('')}
   </svg>`;
 }
@@ -600,7 +635,7 @@ function repSvgDemo(rows, p, key) {
       const cx = L + gw * i + gw / 2;
       return `<rect x="${cx - bw - 2}" y="${y(r.female)}" width="${bw}" height="${y(0) - y(r.female)}" fill="${REP_INK.female}" rx="2"/>
         <rect x="${cx + 2}" y="${y(r.male)}" width="${bw}" height="${y(0) - y(r.male)}" fill="${REP_INK.male}" rx="2"/>
-        <text x="${cx}" y="${H - 22}" text-anchor="middle" font-size="12" fill="#2B2B2B">${esc(r.label)}</text>`;
+        <text x="${cx}" y="${H - 22}" text-anchor="middle" font-size="12" fill="${REP_INK.ink}">${esc(r.label)}</text>`;
     }).join('')}
     <rect x="${L}" y="${H - 12}" width="10" height="10" fill="${REP_INK.female}"/><text x="${L + 16}" y="${H - 3}" font-size="11" fill="${REP_INK.text}">Women</text>
     <rect x="${L + 80}" y="${H - 12}" width="10" height="10" fill="${REP_INK.male}"/><text x="${L + 96}" y="${H - 3}" font-size="11" fill="${REP_INK.text}">Men</text>
@@ -626,6 +661,8 @@ function repChartBody(wsId, b, month) {
       const items = repRows(wsId, { platform: p, category: 'all', rows: 'campaign', sort: key }, month).slice(0, 10).map(r => ({ label: repName('campaign', r.name), value: r[key] || 0 }));
       return items.length ? repSvgBars(items, p, key) : empty('No campaigns ran this month.');
     }
+    case 'age': return repSvgCols(repBreakdown(wsId, p, 'age', month, key), p, key);
+    case 'gender': return repSvgBars(repGender(wsId, p, month, key), p, key, 500, 80, 44);
     case 'demo': return repSvgDemo(repDemo(wsId, p, month, key), p, key);
   }
   return '';
@@ -643,7 +680,7 @@ function repChartSub(b, month, wsId) {
   const m = repMonthLabel(month), p = b.platform;
   const metric = b.metric ? repColLabel(p, b.metric) : '';
   return { summary: m, trend: `${metric}${b.metric2 ? ` (left) and ${repColLabel(p, b.metric2)} (right)` : ''} by day${b.chart === 'trend' ? repTrendSpan(wsId, b, month) : ''}`, followers: `Followers at the end of each day${repSmmSpan(wsId, month)}`, followersMonth: `Followers at the end of each day, ${m}. Dots mark the days a post went live`,
-    byCampaign: `Top 10 campaigns by ${metric}, ${m}`,
+    byCampaign: `Top 10 campaigns by ${metric}, ${m}`, age: `${m}, by age group`, gender: `${m}, by gender`,
     demo: p === 'instagram' ? `Accounts reached by age and gender, ${m}. Unknown gender not shown.` : `${metric} by age and gender, ${m}. Unknown gender not shown.` }[b.chart] || m;
 }
 
@@ -721,7 +758,7 @@ function repRowsPerPage(b) {
   return ['keyword', 'term'].includes(level) ? 12 : 14;
 }
 // Reach-type numbers can't be added up across rows, so the Total row leaves them out.
-const REP_NOT_ADDITIVE = ['reach', 'freq', 'viewers', 'engRate'];
+const REP_NOT_ADDITIVE = ['reach', 'freq', 'avgFreq', 'viewers', 'engRate'];
 function repTablePages(wsId, b, month, withHead) {
   const p = b.platform, all = repRows(wsId, b, month), noun = repNoun(b), main = all.filter(r => !r.sub);
   const rows = b.limit ? all.slice(0, b.limit) : all;
@@ -730,15 +767,17 @@ function repTablePages(wsId, b, month, withHead) {
   const sub = b.columns.includes(b.sort) ? `${what} · Sorted by ${repColLabel(p, b.sort)}, highest first` : what;
   const cols = b.columns.map(k => repCol(p, k)).filter(Boolean);
   const cell = (r, c, total) => {
-    if (c.t === 'tbd') return '—';
     if (c.t === 'text' || c.t === 'status') return total ? '' : esc(r[c.key] || '—');
     if (total && REP_NOT_ADDITIVE.includes(c.key) && !repIsAds(p)) return '—';
     return c.needs && !r[c.needs] ? '—' : esc(ADS_PF_FMT[c.t](r[c.key]));
   };
-  const head = `<thead><tr><th>${esc(repCap(noun[0]))}</th>${cols.map(c => `<th class="${c.t === 'text' || c.t === 'status' ? '' : 'num'}">${esc(c.label)}</th>`).join('')}</tr></thead>`;
+  // More than 16 columns don’t fit across the page: the columns are split into two tables, one under the other, each
+  // with the same rows.
+  const parts = cols.length > 16 ? [cols.slice(0, Math.ceil(cols.length / 2)), cols.slice(Math.ceil(cols.length / 2))] : [cols];
+  const head = pc => `<thead><tr><th>${esc(repCap(noun[0]))}</th>${pc.map(c => `<th class="${c.t === 'text' || c.t === 'status' ? '' : 'num'}">${esc(c.label)}</th>`).join('')}</tr></thead>`;
   const total = b.rows === 'convType' ? { conversions: main.reduce((n, r) => n + r.conversions, 0) } : repIsAds(p) ? adsPfSum(all) : Object.fromEntries([...cols.map(c => c.key), 'reelPlays', 'totalWatch'].map(k => [k, all.reduce((s, r) => s + (r[k] || 0), 0)]));
   if (total.reelPlays) total.avgWatch = total.totalWatch / total.reelPlays;   // averaged over every reel's views, not added up
-  const per = repRowsPerPage(b), chunks = [];
+  const per = Math.max(2, Math.floor(repRowsPerPage(b) / parts.length) - (parts.length - 1)), chunks = [];
   // A page never starts with a conversion action: it moves to the next page with its campaign.
   for (let i = 0, n = withHead ? Math.max(3, per - (per > 10 ? 3 : 1)) : per; i < rows.length; n = per) {
     while (n > 1 && rows[i + n]?.sub) n--;
@@ -747,9 +786,9 @@ function repTablePages(wsId, b, month, withHead) {
   }
   return chunks.map((chunk, ci) => {
     const last = ci === chunks.length - 1;
-    return `<h2 class="rep-h2">${esc(b.title)}${ci ? ' <span class="rep-cont">(continued)</span>' : ''}</h2><div class="rep-sub">${esc(sub)}</div>
-      <table class="rep-table ${b.rows === 'convType' ? 'rep-table-compact' : ''} ${cols.length >= 16 ? 'rep-table-wide rep-table-xwide rep-table-xxwide' : cols.length >= 12 ? 'rep-table-wide rep-table-xwide' : cols.length >= 9 ? 'rep-table-wide' : ''}">${head}<tbody>${chunk.map(r => `<tr class="${r.sub ? 'rep-subrow' : ''}"><td>${repRowCell(wsId, r, b)}</td>${cols.map(c => `<td class="${c.t === 'text' || c.t === 'status' ? '' : 'num'}">${cell(r, c)}</td>`).join('')}</tr>`).join('')}
-      ${last ? `<tr class="rep-total"><td>${b.limit && all.length > b.limit ? `Total, all ${all.length} ${noun[1]}` : 'Total'}</td>${cols.map(c => `<td class="${c.t === 'text' || c.t === 'status' ? '' : 'num'}">${cell(total, c, true)}</td>`).join('')}</tr>` : ''}</tbody></table>`;
+    return `<h2 class="rep-h2">${esc(b.title)}${ci ? ' <span class="rep-cont">(continued)</span>' : ''}</h2><div class="rep-sub">${esc(sub)}${parts.length > 1 ? `. Columns continue in the second table` : ''}</div>
+      ${parts.map(pc => `<table class="rep-table ${b.rows === 'convType' ? 'rep-table-compact' : ''} ${pc.length >= 16 ? 'rep-table-wide rep-table-xwide rep-table-xxwide' : pc.length >= 12 ? 'rep-table-wide rep-table-xwide' : pc.length >= 9 ? 'rep-table-wide' : ''}">${head(pc)}<tbody>${chunk.map(r => `<tr class="${r.sub ? 'rep-subrow' : ''}"><td>${repRowCell(wsId, r, b)}</td>${pc.map(c => `<td class="${c.t === 'text' || c.t === 'status' ? '' : 'num'}">${cell(r, c)}</td>`).join('')}</tr>`).join('')}
+      ${last ? `<tr class="rep-total"><td>${b.limit && all.length > b.limit ? `Total, all ${all.length} ${noun[1]}` : 'Total'}</td>${pc.map(c => `<td class="${c.t === 'text' || c.t === 'status' ? '' : 'num'}">${cell(total, c, true)}</td>`).join('')}</tr>` : ''}</tbody></table>`).join('')}`;
   });
 }
 // Left out of a real report: tables with no rows that month (e.g. no Performance Max campaigns ran), and a section
@@ -772,14 +811,16 @@ function repPages(r) {
           <div class="rep-cover-plats">${plats.map(p => `<span class="rep-cover-plat">${platformLogo(p)}${REP_PLATFORM[p]}</span>`).join('')}</div></div>
         <div class="rep-cover-foot">Prepared by ${esc(am ? am.name : AGENCY_ORG.name)}, ${esc(AGENCY_ORG.name)} · Generated ${esc(fmtDate(repSendDate(month)))}</div>
       </div>` });
-    let slots = [], head = '';
-    const flush = () => { if (slots.length || head) pages.push({ html: head + slots.join('') }); slots = []; head = ''; };
+    let slots = [], head = '', quad = false;
+    const flush = () => { if (slots.length || head) pages.push({ html: head + (quad ? `<div class="rep-quad">${slots.join('')}</div>` : slots.join('')) }); slots = []; head = ''; quad = false; };
     repLiveBlocks(data, repBlocks(r.wsId, r.cfg, r.type), month).forEach(b => {
       if (b.kind === 'text') { flush(); head = `<div class="rep-section"><h2 class="rep-section-title">${esc(b.title)}</h2>${b.note ? `<p class="rep-section-note">${esc(b.note)}</p>` : ''}</div>`; }
       else if (b.kind === 'chart') {
+        if (slots.length && !!b.quad !== quad) flush();
+        quad = !!b.quad;
         // Summary cards need no title: each card names its number.
         slots.push(`<section class="rep-slot ${b.chart === 'summary' ? 'rep-slot-cards' : ''}">${b.chart === 'summary' ? '' : `<h2 class="rep-h2">${esc(b.title)}</h2><div class="rep-sub">${esc(repChartSub(b, month, data))}</div>`}<div class="rep-chart">${repChartBody(data, b, month)}</div></section>`);
-        if (slots.length === 2) flush();
+        if (slots.length === (quad ? 4 : 2)) flush();
       } else {
         if (slots.length) flush();
         repTablePages(data, b, month, !!head).forEach((html, i) => pages.push({ html: (i ? '' : head) + html }));
@@ -836,7 +877,8 @@ function repNextCell(r) {
 // Last Sent: the latest month emailed, Sent (date) or Failed.
 function repLastCell(r) {
   if (!r.last) return '<span class="t-muted">—</span>';
-  const pill = r.last.status === 'failed' ? `${repPill('failed', 'Failed')}<span class="cell-sub">Not sent</span>` : `${repPill('sent', 'Sent')}<span class="cell-sub">${esc(fmtDate(r.last.sentAt))}</span>`;
+  const pill = r.last.status === 'failed' ? `${repPill('failed', 'Failed')}<span class="cell-sub">Not sent</span>`
+    : r.last.status === 'cancelled' ? `${repPill('off', 'Cancelled')}<span class="cell-sub">Not sent</span>` : `${repPill('sent', 'Sent')}<span class="cell-sub">${esc(fmtDate(r.last.sentAt))}</span>`;
   return `<div class="rep-cell-month">${esc(repMonthLabel(r.last.month))} Report</div><div class="rep-cell-status">${pill}</div>`;
 }
 function repRefreshAgency() { renderRegion('rep-agency-body', repAgencyBody()); }
@@ -1058,7 +1100,8 @@ function repHistoryHTML(ws, cfg) {
   // A failed email whose reports have all been regenerated is Ready to send.
   const ready = h => h.status === 'failed' && !repStillFailing(h).length;
   const pill = h => ready(h) ? `${repPill('scheduled', 'Ready to send')}<div class="cell-sub">Every report is generated. Send the email when ready.</div>`
-    : h.status === 'failed' ? repPill('failed', 'Failed') : repPill('sent', 'Sent');
+    : h.status === 'failed' ? repPill('failed', 'Failed')
+    : h.status === 'cancelled' ? `${repPill('off', 'Cancelled')}<div class="cell-sub">The send was cancelled during review</div>` : repPill('sent', 'Sent');
   return `<section class="card"><div class="card-header"><div><h2 class="h-card">Sent Reports</h2><div class="card-sub">Every monthly email, with the PDFs exactly as they were sent. A failed email is tried again daily for 3 days before it shows here as Failed.</div></div></div>
     <div class="table-wrap"><table class="table rep-history">
       <thead><tr><th>Report Month</th><th>Reports</th><th>Status</th><th>Sent</th><th>Recipients</th><th></th></tr></thead>
@@ -1106,8 +1149,8 @@ function repHistoryActions(h) {
   const view = t => `<button type="button" class="btn btn-outline btn-sm" onclick="repOpenSent('${t}', '${h.month}')"><i data-lucide="eye"></i>View ${esc(REP_TYPES[t].short)}</button>`;
   const cells = REP_TYPE_IDS.map(t => !h.types.includes(t) ? '' : failing.includes(t)
     ? `<button type="button" class="btn btn-primary btn-sm" onclick="repRetry('${h.id}', '${t}')"><i data-lucide="refresh-cw"></i>Retry ${esc(REP_TYPES[t].short)}</button>` : view(t));
-  const send = h.status === 'failed'
-    ? `<button type="button" class="btn ${failing.length ? 'btn-outline' : 'btn-primary'} btn-sm" ${failing.length ? `disabled title="Retry the ${esc(repJoin(failing.map(t => REP_TYPES[t].short)))} Report first"` : ''} onclick="repSendEmail('${h.id}')"><i data-lucide="send"></i>Send email</button>`
+  const send = h.status !== 'sent'
+    ? `<button type="button" class="btn ${failing.length || h.status === 'cancelled' ? 'btn-outline' : 'btn-primary'} btn-sm" ${failing.length ? `disabled title="Retry the ${esc(repJoin(failing.map(t => REP_TYPES[t].short)))} Report first"` : ''} onclick="repSendEmail('${h.id}')"><i data-lucide="send"></i>Send email</button>`
     : `<button type="button" class="btn btn-outline btn-sm" onclick="repSendEmail('${h.id}')"><i data-lucide="send"></i>Resend email</button>`;
   return repActionCells([...cells, send]);
 }
@@ -1121,13 +1164,12 @@ function repRetry(id, type) {
 function repSendEmail(id) {
   const ws = wsById(state.ctx), cfg = repConfig(state.ctx), list = repHistories[state.ctx], h = repHistory(state.ctx).find(x => x.id === id);
   const types = h.types.length ? h.types : repTypesOn(ws.id, cfg);
-  confirmDialog({ title: `${h.status === 'failed' ? 'Send' : 'Resend'} the ${repMonthLabel(h.month)} email?`, text: `The ${repJoin(types.map(t => REP_TYPES[t].name))} ${types.length > 1 ? 'go' : 'goes'} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'} of ${ws.name} now, with the agency members copied in.`, confirmLabel: 'Send now', icon: 'send',
+  confirmDialog({ title: `${h.status !== 'sent' ? 'Send' : 'Resend'} the ${repMonthLabel(h.month)} email?`, text: `The ${repJoin(types.map(t => REP_TYPES[t].name))} ${types.length > 1 ? 'go' : 'goes'} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'} of ${ws.name} now, with the agency members copied in.`, confirmLabel: 'Send now', icon: 'send',
     onConfirm: () => {
       const entry = { id: uid('rh'), month: h.month, sentAt: repToday().toISOString(), to: cfg.to.map(r => r.email), status: 'sent', types };
       const i = list.findIndex(x => x.id === id);
-      if (h.status === 'failed' && i >= 0) list[i] = entry; else list.unshift(entry);
-      state.flags.repFailed = false;
-      rerender();
+      if (h.status !== 'sent' && i >= 0) list[i] = entry; else list.unshift(entry);
+            rerender();
       showToast(`${repMonthLabel(h.month)} email sent to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}`, 'send');
     } });
 }
@@ -1148,7 +1190,7 @@ function repViewerHTML() {
   return `<div class="rep-viewer" role="dialog" aria-modal="true" aria-label="${esc(t.name)} preview">
     <div class="rep-viewer-bar">
       <div class="grow"><div class="rep-viewer-title">${r.sample ? `${esc(t.name)} preview <span class="rep-sample-badge">Sample data</span>` : `${esc(repFileName(r.wsId, r.type, r.month))}${r.upcoming ? ' <span class="rep-upcoming-badge">Upcoming</span>' : ''}`}</div>
-        <div class="rep-viewer-sub">${r.sample ? esc(`Made-up names and numbers, to check the sections and columns that are turned on. The real report uses ${ws.name}’s data.`) : r.upcoming ? esc(`Not sent yet: this is what recipients will get on ${fmtDateTime(repSendDate(r.month))}, with ${ws.name}’s data and the current set-up. Change sections, columns or recipients until then.`) : repHistory(r.wsId).some(h => h.month === r.month && h.status === 'failed') ? 'Generated, not sent yet: the email is held until every report in it has been generated.' : 'As sent. In the product this is the stored PDF; the prototype draws it again.'}</div></div>
+        <div class="rep-viewer-sub">${r.sample ? esc(`Made-up names and numbers, to check the sections and columns that are turned on. The real report uses ${ws.name}’s data.`) : r.upcoming ? esc(`Not sent yet: this is what recipients will get on ${fmtDateTime(repSendDate(r.month))}, with ${ws.name}’s data and the current set-up. Change sections, columns or recipients until then.`) : repHistory(r.wsId).some(h => h.month === r.month && h.status === 'cancelled') ? 'Generated, not sent: the send was cancelled during review.' : repHistory(r.wsId).some(h => h.month === r.month && h.status === 'failed') ? 'Generated, not sent yet: the email is held until every report in it has been generated.' : 'As sent. In the product this is the stored PDF; the prototype draws it again.'}</div></div>
       ${r.sample ? '' : `<select class="select rep-viewer-month" aria-label="Report month" onchange="state.params.preview = this.value; rerender()">${months.map(m => `<option value="${m}" ${m === r.month ? 'selected' : ''}>${esc(repMonthLabel(m))}</option>`).join('')}</select>`}
       <button type="button" class="btn btn-primary" onclick="repDownload()"><i data-lucide="download"></i>Download PDF</button>
       <button type="button" class="kebab rep-viewer-close" aria-label="Close preview" onclick="repClosePreview()"><i data-lucide="x"></i></button>
@@ -1199,10 +1241,7 @@ registerDevScreen('Client workspace', 'client-reports-sent', 'Reports › Sent r
   navigate('reports', h ? { tab: 'history', report: h.types[0], preview: h.month } : { tab: 'history' });
 });
 const repReviewToggle = () => ({ label: 'Review period (1st of next month)', active: !!state.flags.repReview, run: () => { state.flags.repReview = !state.flags.repReview; if (state.params.preview && !state.flags.repReview) repClosePreview(); else render(); } });
-const repDevToggles = () => [
-  repReviewToggle(),
-  { label: 'Last report failed', active: !!state.flags.repFailed, run: () => { state.flags.repFailed = !state.flags.repFailed; rerender(); } }
-];
+const repDevToggles = () => [repReviewToggle()];
 registerDevToggles('agency-reports', () => [repReviewToggle()]);
 [...REP_TABS.map(t => `client-reports-${t.id}`), 'client-reports-sample', 'client-reports-sent'].forEach(k => registerDevToggles(k, repDevToggles));
 
@@ -1245,7 +1284,7 @@ ${summary}
 - **No set-up step:** every client workspace has this page, with both reports off to begin with. Every section and column starts on. Recipients start with the workspace Owner and a marketing@ address; the account manager is copied in.
 - **Turning a report on needs its source:** the SEM Report needs Google Ads; the SMM Report needs Meta (a Facebook Page, Instagram account or Meta Ads account). Without it the switch stays off, its hint says what is needed, and turning it on opens a dialog: "Link Google Ads first … Link it in Integrations, then turn the SEM Report on." Sections whose source isn't linked are greyed out with the switch disabled.
 - **Send the ${REP_TYPES[type].name} every month:** on/off. Off keeps the section choices.
-- **Defaults for a new client (general):** on: SEM Overall performance, Campaign performance, the Search sections (Search campaigns, ad groups, keywords, search terms, search ads: every SEM client runs Search) and Conversion type breakdown; SMM Facebook Page, Facebook posts, Instagram, Instagram posts, Meta Ads and All Ads (a table of every Meta ad that ran, right below Meta Ads). Off until the AM turns them on: every other campaign-type section (Performance Max, Demand Gen, Display, YouTube, App install; Meta Awareness, Traffic, Engagement, Lead generation, Sales).
+- **Defaults for a new client (general):** on: SEM Overall performance, Campaign performance, Conversion type breakdown, Age and gender, the Search sections (Search campaigns, ad groups, keywords, search terms, search ads: every SEM client runs Search); SMM Facebook Page, Facebook posts, Instagram, Instagram posts, Meta Ads and All Ads (a table of every Meta ad that ran, right below Meta Ads). Off until the AM turns them on: every other campaign-type section (Performance Max, Demand Gen, Display, YouTube, App install; Meta Awareness, Traffic, Engagement, Lead generation, Sales).
 - **Daily charts:** every campaign-type section offers the same two: Impressions and clicks by day, and Conversions and cost per conversion by day (Meta: Impressions and link clicks by day only, as the sheet has no conversions for Meta). They start on where the sample report had daily charts (Search and Performance Max). Overall performance also has Impressions and clicks by day, for all campaigns.
 - **Sections** (fixed order, fixed headings): the Cover page is always included. Each section has an on/off switch, its platform and what it contains. A section whose source isn't linked is greyed out with the switch disabled and a link to Integrations. With every section off, a warning says the report won't be sent.
 - **Each section that is on shows, in PDF order:** Summary cards, then Charts, then each table's columns.
@@ -1282,6 +1321,7 @@ ${summary}
 - **Past reports** have visible **View SEM / View SMM** buttons; next to them, **Resend email**. The action buttons sit in three fixed columns (SEM, SMM, send action), so they line up from row to row; nothing is hidden in a menu. Before the month ends the next report's row says "Preview from 1 Dec" instead of a button; during the review period its Preview buttons are the solid, primary call-out. The summary line says the reports are ready to review in Sent Reports.
 - **Agency list:** clients in the review period have a **Review** button that opens their Sent Reports tab, and Next Send shows a "Ready for review" pill with "Sends 3 Dec 2026, 12:00" (or "Cancelled").
 - Dev toggle **Review period (1st of next month)** shows this state.
+- **Prototype data:** Visual Studio's history shows one of each past status: October Failed (Retry SEM), September Ready to send (the SEM Report was regenerated), August Cancelled (Send email), and July Sent.
 - Each past email: month, reports attached (SEM / SMM), status (Sent / Failed with the reason), sent date and time, recipient count (hover for the addresses). Actions: **View SEM** / **View SMM** (the stored PDF, with the client's real data) and **Resend email** (confirmation, then sends to the current recipients).
 - **A failed email** means a report couldn't be generated (e.g. Google Ads data couldn't be fetched); the email is held, not sent with a missing report. The row has **Retry SEM** / **Retry SMM** for each report that failed (regenerates just that report; the others show **View**), and **Send email**, disabled until no report is still failing. Once every report is regenerated the row shows **Ready to send**. The red banner on every tab links to Sent Reports until the email is sent.`),
     'client-reports-sample': spec('Reports › Preview with sample data (Client workspace, agency only)', 'Check the layout of a report, with the sections and columns turned on for this client, without showing real data.', `
@@ -1293,10 +1333,12 @@ ${summary}
 1. **Cover:** Galaxis, "Monthly SEM Report" / "Monthly SMM Report", client name, month, the linked sources of that report, "Prepared by {AM}, ${AGENCY_ORG.name} · Generated {date}".
 2. Each section turned on, in order: **its heading (and note) starts a new page**; **charts two to a page**; **each table starts on a new page** (or under its heading), with as many rows per page as fit (14 for campaigns and ad groups; 12 for keywords and search terms; 8 for image and video ads, asset groups and Meta ads; 7 for posts; 5 for search ads, which show their text), "continued" on later pages, and a Total row at the end. Subtitle: "Top 10 of 34 keywords that ran in October 2026 · Sorted by Clicks, highest first".
 - **Daily charts (Google Ads and Meta Ads) cover the whole campaign:** from the earliest start date of the campaigns in the chart that ran in the report month (Google \`campaign.start_date\`, Meta \`start_time\`), capped at two months before the report month, to the month's last day. The report month is shaded and labelled; ticks on the 1st and 15th. **Followers** (Facebook and Instagram) has two charts: **Followers over time** covers the whole time the agency has managed the client's social media (service start date, up to 12 months) to the end of the report month, with the report month shaded; **Followers this month** covers the report month only, with a dot and line on each day a post went live, so follower changes can be read against posting days (over a long period the post markers are too dense to read).
-- **Conversion type breakdown** (last SEM section, as in the sample): each campaign with conversions, most first, with its conversion actions (Google \`segments.conversion_action_name\`) indented underneath; a Total row.
+- **Conversion type breakdown** (right after Campaign performance, below Conversions by campaign): each campaign with conversions, most first, with its conversion actions (Google \`segments.conversion_action_name\`) indented underneath; a Total row.
+- **Age and gender** (SEM, after Conversion type breakdown): Clicks by age, Clicks by gender, Conversions by age and Conversions by gender, four charts on one page. Google Ads can't group by age and gender in the same query (\`age_range_view\` and \`gender_view\` are separate reports), so they are separate charts. Each includes Unknown.
+- **Report colours** follow OOm's brand, modernised: wine (#A51F4E) for the main series, slate (#3E5468) for a second series and men, blush tints for table headers and the shaded report month, a deep plum-to-wine cover.
 - **Reels watch time (Instagram):** Reels avg. watch time and Reels total watch time, as optional summary cards and Posts and reels table columns (off by default). Reels only (\`ig_reels_avg_watch_time\`, \`ig_reels_video_view_total_time\`); other posts show "—". The average is weighted by each reel's views.
 - **Wide tables are never split:** type gets smaller as columns are added (9+ columns, 12+ columns, 16+ columns such as YouTube); readers can zoom into the PDF.
-- **Campaign-type tables** (Search, Performance Max, Demand Gen, Display, YouTube, App install; Meta Awareness and Traffic) offer the columns in the "Google & Meta Ads Metrics - Monthly Report" sheet, reordered to follow the funnel: reach and impressions, clicks, cost, video, conversions, value, impression share. Search ad groups, keywords, search terms and search ads use the Search columns that exist at their level. **Meta Engagement, Lead generation and Sales** have five placeholder columns, "Mindy TBD 🙇🏻‍♀️", until their columns are decided; they print as "—".
+- **Campaign-type tables** (Search, Performance Max, Demand Gen, Display, YouTube, App install; Meta Awareness, Traffic, Engagement, Lead generation and Sales) offer the columns in the "Google & Meta Ads Metrics - Monthly Report" sheet, reordered to follow the funnel: reach and impressions, clicks, cost, video, conversions, value, impression share. Search ad groups, keywords, search terms and search ads use the Search columns that exist at their level. Number formats follow the sheet: counts 0 d.p.; percentages, currency, ROAS and Google Avg. frequency 2 d.p.; Google Avg. impr. freq. / user 0 d.p.; Meta Frequency 1 d.p.; Meta Purchases 2 d.p. (Meta can report fractional, modelled purchases). Column names follow the Galaxis naming (e.g. Conv., Search Impr. Share (%), Search Lost IS (budget), Search Lost IS (rank)), not the sheet's wording. The sheet's YouTube "Avg. Frequency" sits next to Avg. impr. freq. / user; which Google Ads metric it is is to confirm.
 - **Rows:** ads show a thumbnail, name, campaign › ad group and a link; search ads show their headlines, URL and description; posts show the image, the first 3 lines of the caption, the date, the type and a **View post** link.
 - No month-on-month comparison and no definitions page (decided 20/11/2026).
 - **Download PDF** in the prototype opens the browser's print dialog (Save as PDF; links stay clickable).`),

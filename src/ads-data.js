@@ -179,9 +179,11 @@ const ADS_M_ATTRIBUTION = '7-day click, 1-day view';
 // Extra summable metrics for the platform views (on top of ADS_SUM_KEYS). si* = Search impression-share
 // building blocks (eligible impressions etc.), v* = video, the rest are platform counts.
 const ADS_PF_SUM_KEYS = ['allConv', 'siImpr', 'siElig', 'siTop', 'siAbs', 'siRank', 'siBudget', 'vImpr', 'vViews', 'v25', 'v50', 'v75', 'v100', 'storeVisits',
-  'viewImpr', 'vtc', 'installs', 'inApp', 'allClicks', 'lpv', 'shares', 'saves', 'igFollows', 'igVisits', 'msgs', 'thruplays', 'recall', 'addsToCart', 'checkouts'];
+  'viewImpr', 'vtc', 'installs', 'inApp', 'allClicks', 'lpv', 'shares', 'saves', 'igFollows', 'igVisits', 'msgs', 'thruplays', 'recall', 'addsToCart', 'checkouts',
+  'pageEng', 'interactions', 'reactions', 'comments', 'fbLikes', 'plays3s', 'viewers', 'views'];
 const ADS_PF_INT_KEYS = new Set(['impressions', 'reach', 'clicks', 'conversions', 'pLeads', 'purchases', 'engagements', 'allConv', 'vViews', 'storeVisits',
-  'viewImpr', 'vtc', 'installs', 'inApp', 'allClicks', 'lpv', 'shares', 'saves', 'igFollows', 'igVisits', 'msgs', 'thruplays', 'recall', 'v25', 'v50', 'v75', 'v100', 'addsToCart', 'checkouts']);
+  'viewImpr', 'vtc', 'installs', 'inApp', 'allClicks', 'lpv', 'shares', 'saves', 'igFollows', 'igVisits', 'msgs', 'thruplays', 'recall', 'v25', 'v50', 'v75', 'v100', 'addsToCart', 'checkouts',
+  'pageEng', 'interactions', 'reactions', 'comments', 'fbLikes', 'plays3s', 'viewers', 'views']);
 adsCache.pfStatic = {};
 adsCache.pf = {};
 // Definitions from the metric sheet (Metrics (Original) › Definition). Rows the sheet leaves blank use
@@ -229,6 +231,15 @@ const ADS_SHEET = {
   saves: 'Number of times people saved the ad post.',
   igFollows: 'Number of Instagram follows gained from the ad.',
   igVisits: 'Number of visits to your Instagram profile from the ad.',
+  pageEng: 'Total actions people took on your Facebook Page and its posts, attributed to the ad.',
+  interactions: 'Number of interactions with the ad, such as reactions, comments, shares and clicks.',
+  reactions: 'Number of reactions on the ad post.',
+  comments: 'Number of comments on the ad post.',
+  fbLikes: 'Number of likes of your Facebook Page gained from the ad.',
+  plays3s: 'Number of times your video was played for at least 3 seconds, or for nearly its whole length if shorter.',
+  viewers: 'Number of people who saw the ad at least once (Meta’s newer name for reach).',
+  views: 'Number of times the ad was on screen, including repeat views by the same person.',
+  gAvgFreq: 'Average number of times a person saw the ad. Which Google Ads metric this is, next to Avg. impr. freq. / user, is to confirm.',
   mVideo: n => `Number of times your video was played to ${n}% of its length, including plays that skipped to this point.`,
   gVideo: n => `Percentage of video impressions where the viewer watched ${n}% of the video.`
 };
@@ -340,6 +351,12 @@ function adsPfAdExt(a, att) {
     o.recall = Math.round(a.reach * (0.015 + adsRng(`${a.id}:report-ext`)() * 0.03));
     o.addsToCart = Math.round(a.purchases * (2.5 + u[13] * 3));
     o.checkouts = Math.round(a.purchases * (1.4 + u[14]));
+    // Engagement metrics from the monthly report sheet, on their own random stream so the others keep their values.
+    const y = adsRng(`${a.id}:report-ext-2`);
+    Object.assign(o, { pageEng: Math.round(a.engagements * (1.02 + y() * 0.08)), interactions: Math.round(a.engagements * (0.45 + y() * 0.3)),
+      reactions: Math.round(a.engagements * (0.05 + y() * 0.1)), comments: Math.round(a.engagements * (0.005 + y() * 0.015)), fbLikes: Math.round(a.engagements * (0.003 + y() * 0.007)),
+      viewers: Math.round(a.reach * (0.96 + y() * 0.03)), views: Math.round(a.impressions * (1.02 + y() * 0.12)) });
+    if (video) o.plays3s = Math.round(a.impressions * (0.25 + y() * 0.15));
   }
   return o;
 }
@@ -358,6 +375,7 @@ function adsPfDerive(o) {
   o.cpInstall = o.installs ? o.spend / o.installs : 0;
   o.cpInApp = o.inApp ? o.spend / o.inApp : 0;
   o.cpThru = o.thruplays ? o.spend / o.thruplays : 0;
+  o.avgFreq = o.reach ? o.impressions / o.reach : 0;
   return o;
 }
 function adsPfSum(items) {
@@ -421,7 +439,7 @@ function adsPfData(wsId, p, days) {
 // t: status | text | budget | url | qs | money | money2 | int | pct | dec | roas. levels: where the column exists natively.
 // secs: "14.2s". dur: "3h 25m", "12m 5s" or "45s".
 function adsDur(v) { const t = Math.round(v || 0), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60; return h ? `${fmtNum(h)}h ${m}m` : m ? `${m}m ${sec}s` : `${sec}s`; }
-const ADS_PF_FMT = { secs: v => `${Number(v || 0).toFixed(1)}s`, dur: adsDur, money: v => fmtMoney(v), money2: v => fmtMoney(v, 2), int: v => fmtNum(Math.round(v)), pct: v => fmtPct(v), dec: v => Number(v || 0).toFixed(2), roas: v => `${Number(v || 0).toFixed(2)}x` };
+const ADS_PF_FMT = { secs: v => `${Number(v || 0).toFixed(1)}s`, dur: adsDur, money: v => fmtMoney(v), money2: v => fmtMoney(v, 2), int: v => fmtNum(Math.round(v)), pct: v => fmtPct(v), dec: v => Number(v || 0).toFixed(2), dec1: v => Number(v || 0).toFixed(1), roas: v => `${Number(v || 0).toFixed(2)}x` };
 function adsPfCol(key, group, label, t, tip, o = {}) { return { key, group, label, t, tip, ...o }; }
 const ADS_PF_NOT_KW = ['campaign', 'adgroup', 'ad'];
 const ADS_PF_COLS = {
@@ -445,20 +463,21 @@ const ADS_PF_COLS = {
     adsPfCol('engagements', 'perf', 'Interactions', 'int', ADS_SHEET.engagements),
     adsPfCol('engRate', 'perf', 'Engagement rate', 'pct', ADS_SHEET.engRate, { needs: 'impressions' }),
     adsPfCol('cpe', 'perf', 'Avg. CPE', 'money2', ADS_SHEET.cpe, { needs: 'engagements' }),
-    adsPfCol('conversions', 'conv', 'Conversions', 'int', ADS_SHEET.conversions),
+    adsPfCol('conversions', 'conv', 'Conv.', 'int', ADS_SHEET.conversions),
     adsPfCol('cvr', 'conv', 'Conv. rate', 'pct', ADS_SHEET.cvr, { needs: 'clicks' }),
     adsPfCol('cpa', 'conv', 'Cost / conv.', 'money2', `${ADS_SHEET.cpLead} Google reports cost per lead and cost per purchase as Cost / conv. of that conversion action.`, { quality: 'low', needs: 'conversions' }),
     adsPfCol('allConv', 'conv', 'All conv.', 'int', ADS_SHEET.allConv),
     adsPfCol('convValue', 'conv', 'Conv. value', 'money2', ADS_SHEET.convValue),
     adsPfCol('pRoas', 'conv', 'ROAS', 'dec', ADS_SHEET.roas, { needs: 'spend' }),
     adsPfCol('vtc', 'conv', 'View-through conv.', 'int', 'Conversions after someone saw, but didn’t interact with, an ad.'),
-    adsPfCol('is', 'comp', 'Search impr. share', 'pct', ADS_SHEET.is, { needs: 'siElig', levels: ['campaign', 'adgroup', 'keyword'] }),
+    adsPfCol('is', 'comp', 'Search Impr. Share (%)', 'pct', ADS_SHEET.is, { needs: 'siElig', levels: ['campaign', 'adgroup', 'keyword'] }),
     adsPfCol('topIs', 'comp', 'Search top IS', 'pct', ADS_SHEET.topIs, { needs: 'siElig', levels: ['campaign', 'adgroup', 'keyword'] }),
     adsPfCol('absIs', 'comp', 'Search abs. top IS', 'pct', ADS_SHEET.absIs, { needs: 'siElig', levels: ['campaign', 'adgroup', 'keyword'] }),
-    adsPfCol('lostRank', 'comp', 'Search lost IS (rank)', 'pct', ADS_SHEET.lostRank, { needs: 'siElig', levels: ['campaign', 'adgroup', 'keyword'] }),
-    adsPfCol('lostBudget', 'comp', 'Search lost IS (budget)', 'pct', ADS_SHEET.lostBudget, { needs: 'siElig', levels: ['campaign', 'adgroup'] }),
+    adsPfCol('lostRank', 'comp', 'Search Lost IS (rank)', 'pct', ADS_SHEET.lostRank, { needs: 'siElig', levels: ['campaign', 'adgroup', 'keyword'] }),
+    adsPfCol('lostBudget', 'comp', 'Search Lost IS (budget)', 'pct', ADS_SHEET.lostBudget, { needs: 'siElig', levels: ['campaign', 'adgroup'] }),
     adsPfCol('reach', 'reach', 'Unique reach', 'int', ADS_SHEET.reach, { levels: ADS_PF_NOT_KW }),
-    adsPfCol('freq', 'reach', 'Avg. impr. freq. / user', 'dec', ADS_SHEET.freq, { needs: 'reach', levels: ADS_PF_NOT_KW }),
+    adsPfCol('avgFreq', 'reach', 'Avg. frequency', 'dec', ADS_SHEET.gAvgFreq, { needs: 'reach', levels: ADS_PF_NOT_KW }),
+    adsPfCol('freq', 'reach', 'Avg. impr. freq. / user', 'int', ADS_SHEET.freq, { needs: 'reach', levels: ADS_PF_NOT_KW }),
     adsPfCol('vViews', 'video', 'Views', 'int', ADS_SHEET.vViews, { needs: 'vImpr', levels: ADS_PF_NOT_KW }),
     adsPfCol('viewRate', 'video', 'View rate', 'pct', 'Views divided by video impressions.', { needs: 'vImpr', levels: ADS_PF_NOT_KW }),
     adsPfCol('cpv', 'video', 'Avg. CPV', 'money2', 'Average cost per view: cost divided by views.', { needs: 'vViews', levels: ADS_PF_NOT_KW }),
@@ -483,7 +502,7 @@ const ADS_PF_COLS = {
     adsPfCol('spend', 'perf', 'Amount spent', 'money2', ADS_SHEET.cost),
     adsPfCol('reach', 'perf', 'Reach', 'int', ADS_SHEET.reach),
     adsPfCol('impressions', 'perf', 'Impressions', 'int', ADS_SHEET.impressions),
-    adsPfCol('freq', 'perf', 'Frequency', 'dec', ADS_SHEET.freq, { needs: 'reach' }),
+    adsPfCol('freq', 'perf', 'Frequency', 'dec1', ADS_SHEET.freq, { needs: 'reach' }),
     adsPfCol('cpm', 'perf', 'CPM (cost per 1,000 impressions)', 'money2', ADS_SHEET.cpm, { quality: 'low', needs: 'impressions' }),
     adsPfCol('clicks', 'clicks', 'Link clicks', 'int', ADS_SHEET.clicks),
     adsPfCol('ctr', 'clicks', 'CTR (link click-through rate)', 'pct', ADS_SHEET.ctr, { quality: 'high', needs: 'impressions' }),
@@ -500,6 +519,14 @@ const ADS_PF_COLS = {
     adsPfCol('saves', 'eng', 'Post saves', 'int', ADS_SHEET.saves),
     adsPfCol('igFollows', 'eng', 'Instagram follows', 'int', ADS_SHEET.igFollows),
     adsPfCol('igVisits', 'eng', 'Instagram profile visits', 'int', ADS_SHEET.igVisits),
+    adsPfCol('pageEng', 'eng', 'Page engagement', 'int', ADS_SHEET.pageEng),
+    adsPfCol('interactions', 'eng', 'Interactions', 'int', ADS_SHEET.interactions),
+    adsPfCol('reactions', 'eng', 'Post reactions', 'int', ADS_SHEET.reactions),
+    adsPfCol('comments', 'eng', 'Post comments', 'int', ADS_SHEET.comments),
+    adsPfCol('fbLikes', 'eng', 'Facebook likes', 'int', ADS_SHEET.fbLikes),
+    adsPfCol('viewers', 'perf', 'Viewers', 'int', ADS_SHEET.viewers),
+    adsPfCol('views', 'perf', 'Views', 'int', ADS_SHEET.views),
+    adsPfCol('plays3s', 'video', '3-second video plays', 'int', ADS_SHEET.plays3s, { needs: 'vImpr' }),
     adsPfCol('msgs', 'msg', 'Messaging conversations started', 'int', ADS_SHEET.msgs),
     adsPfCol('cpMsg', 'msg', 'Cost per messaging conversation started', 'money2', ADS_SHEET.cpMsg, { needs: 'msgs' }),
     adsPfCol('thruplays', 'video', 'ThruPlays', 'int', ADS_SHEET.thruplays, { needs: 'vImpr' }),
@@ -508,7 +535,7 @@ const ADS_PF_COLS = {
     ...[25, 50, 75, 100].map(n => adsPfCol(`v${n}`, 'video', `Video plays at ${n}%`, 'int', ADS_SHEET.mVideo(n), { needs: 'vImpr' })),
     adsPfCol('pLeads', 'conv', 'Leads', 'int', ADS_SHEET.leads),
     adsPfCol('cpLead', 'conv', 'Cost per lead', 'money2', ADS_SHEET.cpLead, { needs: 'pLeads' }),
-    adsPfCol('purchases', 'conv', 'Purchases', 'int', ADS_SHEET.purchases),
+    adsPfCol('purchases', 'conv', 'Purchases', 'dec', ADS_SHEET.purchases),
     adsPfCol('cpp', 'conv', 'Cost per purchase', 'money2', ADS_SHEET.cpp, { needs: 'purchases' }),
     adsPfCol('convValue', 'conv', 'Purchases conversion value', 'money2', ADS_SHEET.convValue),
     adsPfCol('pRoas', 'conv', 'Purchase ROAS (return on ad spend)', 'dec', ADS_SHEET.roas, { needs: 'spend' }),
