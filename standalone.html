@@ -670,7 +670,6 @@ label.rep-block-title { cursor: pointer; }
 .rep-send-panel .rep-combo { max-width: none; }
 .rep-send-panel .rep-people, .rep-send-panel .rep-none { margin: -4px 0 0; }
 .rep-send-panel .rep-none { font-size: 13px; }
-.rep-send-label { margin-bottom: -6px; }
 .rep-send-panel .textarea { min-height: 170px; }
 @media (max-width: 760px) { .rep-send-cols { grid-template-columns: minmax(0, 1fr); } }
 .rep-combo-box { position: relative; }
@@ -2394,7 +2393,7 @@ function repSampleWs() {
 // Each client's report set-up (in memory, like the rest of the demo)
 // =====================================================================
 // cfg: { owner (agency member: "Prepared by" and reply-to), sendDay (1–28), sendHour (0–23, Singapore time), subject, message, to: [{ id, name, email }],
-//        cc: [agency member ids], reports: { sem | smm: { on, off: [section ids turned off], charts: [chart ids turned off],
+//        cc: [{ id, name, email }] (agency members or any address), reports: { sem | smm: { on, off: [section ids turned off], charts: [chart ids turned off],
 //        hide: { table or summary cards id: [column / number keys turned off] } } }, createdAt }
 const repConfigs = {};
 const repHistories = {};
@@ -2406,13 +2405,14 @@ function repNewReports(wsId, on = REP_TYPE_IDS) {
     return [t, { on: on.includes(t) && repTypeOk(wsId, t), off: ss.filter(s => s.hidden).map(s => s.id), charts: ss.flatMap(s => s.blocks).filter(b => b.hidden).map(b => b.id), hide: {} }];
   }));
 }
+function repCcOf(m) { return { id: uid('rr'), name: m.name, email: m.email }; }
 function repNewConfig(wsId, o = {}) {
   const owner = wsPrimaryContact(wsId);
   const ws = wsById(wsId);
   return {
     owner: CURRENT_USER_ID, sendDay: REP_SEND_DAY, sendHour: REP_SEND_HOUR, subject: REP_SUBJECT, message: REP_MESSAGE,
     to: [...(owner ? [{ id: uid('rr'), name: owner.name, email: owner.email }] : []), { id: uid('rr'), name: 'Marketing Team', email: `marketing@${ws.site || 'example.com'}` }],
-    cc: [CURRENT_USER_ID], reports: repNewReports(wsId), createdAt: repToday().toISOString(), ...o
+    cc: [repCcOf(memberById(CURRENT_USER_ID))], reports: repNewReports(wsId), createdAt: repToday().toISOString(), ...o
   };
 }
 // Every workspace has a set-up, with both reports off to begin with. Seed: a workspace with every source linked has had
@@ -3037,7 +3037,7 @@ function repResetSchedule() {
 function repDeliveryHTML(ws, cfg) {
   const next = repNextMonth(cfg), types = repTypesOn(ws.id, cfg);
   const agency = members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)));
-  const err = state.ui.repToErr || '';
+  const err = state.ui.repErr;
   const isDefault = cfg.sendDay === REP_SEND_DAY && cfg.sendHour === REP_SEND_HOUR;
   const days = Array.from({ length: 28 }, (_, i) => i + 1), hours = Array.from({ length: 24 }, (_, i) => i);
   return `<section class="card"><div class="card-header"><div><h2 class="h-card">Schedule</h2><div class="card-sub">Each report turned on goes out every month, with the SEM and SMM Reports together in one email. Each report covers the previous calendar month (1st to last day).</div></div>
@@ -3054,10 +3054,10 @@ function repDeliveryHTML(ws, cfg) {
       <div class="form-section-title rep-first">To</div>
       ${cfg.to.length ? `<div class="rep-people">${cfg.to.map(r => repPersonChip(r.name, r.email, `repRemoveTo('${r.id}')`)).join('')}</div>`
         : `<div class="banner banner-warning"><i data-lucide="triangle-alert"></i><div><div class="banner-title">No recipients</div><div class="banner-text">Add at least one, or the reports won’t be sent.</div></div></div>`}
-      ${repComboHTML('to', 'Add a recipient', repPlaceholder('to'), cfg.to.length >= 20 ? 'Up to 20 recipients: remove one to add another.' : '', cfg.to.length >= 20, err)}
+      ${repComboHTML('to', 'Add a recipient', repPlaceholder('to'), cfg.to.length >= 20 ? 'Up to 20 recipients: remove one to add another.' : '', cfg.to.length >= 20, err.to)}
       <div class="form-section-title">Cc</div>
-      ${cfg.cc.length ? `<div class="rep-people">${cfg.cc.map(id => memberById(id)).filter(Boolean).map(m => repPersonChip(m.name, m.email, `repRemoveCc('${m.id}')`)).join('')}</div>` : '<div class="t-muted rep-none">No one is copied in.</div>'}
-      ${agency.some(m => !cfg.cc.includes(m.id)) ? repComboHTML('cc', 'Copy in an agency member', repPlaceholder('cc'), '') : ''}
+      ${cfg.cc.length ? `<div class="rep-people">${cfg.cc.map(r => repPersonChip(r.name, r.email, `repRemoveCc('${r.id}')`)).join('')}</div>` : '<div class="t-muted rep-none">No one is copied in.</div>'}
+      ${repComboHTML('cc', 'Copy someone in', repPlaceholder('cc'), '', false, err.cc)}
     </section>
     <section class="card"><div class="card-header"><div><h2 class="h-card">Email</h2><div class="card-sub">Sent from Galaxis Reports. Replies go to the account manager.</div></div></div>
       <div class="stack-sm">
@@ -3095,15 +3095,21 @@ function repPlaceholder(kind) { return REP_PLACEHOLDERS[kind][repNarrow() ? 1 : 
 function repComboBase(kind) { return kind.endsWith('cc') ? 'cc' : 'to'; }
 function repComboDraft(kind) { return kind.startsWith('send-'); }
 function repComboTarget(kind) { return repComboDraft(kind) ? state.ui.repDraft : repConfig(state.ctx); }
-function repComboErr(kind) { return repComboDraft(kind) ? state.ui.repDraft.err : state.ui.repToErr; }
-function repSetComboErr(kind, v) { if (repComboDraft(kind)) state.ui.repDraft.err = v; else state.ui.repToErr = v; }
+// Errors under each field, by list: { to, cc }.
+state.ui.repErr = { to: '', cc: '' };
+function repErrs(kind) { return repComboDraft(kind) ? state.ui.repDraft.err : state.ui.repErr; }
+function repComboErr(kind) { return repErrs(kind)[repComboBase(kind)]; }
+function repSetComboErr(kind, v) { repErrs(kind)[repComboBase(kind)] = v; }
 function repComboRerender(kind) { if (repComboDraft(kind)) repRenderSend(); else rerender(); }
+// An address can only be on the email once, in To or Cc.
+function repTaken(cfg, email) { return [...cfg.to, ...cfg.cc].some(r => r.email.toLowerCase() === email.toLowerCase()); }
 function repComboOptions(kind) {
   const ws = currentWs(), cfg = repComboTarget(kind), q = (document.getElementById(`rep-${kind}-input`)?.value || '').trim().toLowerCase();
   const match = m => !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
-  if (repComboBase(kind) === 'cc') return members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)) && !cfg.cc.includes(m.id) && match(m)).map(m => ({ id: m.id, name: m.name, email: m.email }));
-  const taken = e => cfg.to.some(r => r.email.toLowerCase() === e.toLowerCase());
-  const opts = members.filter(m => m.org === ws.id && m.status === 'active' && !taken(m.email) && match(m)).map(m => ({ name: m.name, email: m.email }));
+  // To suggests the client's workspace members; Cc suggests agency members assigned to the client. Both take any email.
+  const taken = e => repTaken(cfg, e);
+  const pool = repComboBase(kind) === 'cc' ? members.filter(m => m.org === 'agency' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id))) : members.filter(m => m.org === ws.id);
+  const opts = pool.filter(m => m.status === 'active' && !taken(m.email) && match(m)).map(m => ({ name: m.name, email: m.email }));
   const typed = repParsePerson(q ? document.getElementById(`rep-${kind}-input`).value : '');
   if (isEmail(typed.email) && !taken(typed.email) && !opts.some(o => o.email.toLowerCase() === typed.email.toLowerCase())) opts.push({ ...typed, typed: true });
   return opts;
@@ -3124,7 +3130,7 @@ function repComboOpen(kind) {
 }
 // Typing again clears an error from the last attempt.
 function repComboInput(kind) {
-  if (repComboBase(kind) === 'to' && repComboErr(kind)) {
+  if (repComboErr(kind)) {
     repSetComboErr(kind, '');
     const input = document.getElementById(`rep-${kind}-input`), err = input.closest('.rep-combo').querySelector('.field-error');
     input.classList.remove('invalid');
@@ -3147,29 +3153,28 @@ function repComboKey(e, kind) {
     e.preventDefault();
     repComboOpen(kind);
     if (c.opts.length) repComboPick(kind, c.active);
-    else if (repComboBase(kind) === 'to') repComboInvalid(kind);
+    else repComboInvalid(kind);
   } else if (e.key === 'Escape') repComboClose(kind);
 }
 // Enter with nothing to pick: say why it can't be added.
 function repComboInvalid(kind) {
   const cfg = repComboTarget(kind), v = document.getElementById(`rep-${kind}-input`).value, { email } = repParsePerson(v);
   if (!v.trim()) return;
-  repSetComboErr(kind, cfg.to.some(r => r.email.toLowerCase() === email.toLowerCase()) ? 'This email is already a recipient.' : 'Enter a valid email address, or choose a member.');
+  repSetComboErr(kind, repTaken(cfg, email) ? 'This address is already in To or Cc.' : 'Enter a valid email address, or choose a member.');
   repComboRerender(kind);
   const el = document.getElementById(`rep-${kind}-input`); el.value = v; el.focus();
 }
 function repComboPick(kind, i) {
   const o = state.ui.repCombo.opts[i], cfg = repComboTarget(kind);
   if (!o) return;
-  if (repComboBase(kind) === 'cc') cfg.cc.push(o.id);
-  else cfg.to.push({ id: uid('rr'), name: o.name, email: o.email });
+  cfg[repComboBase(kind)].push({ id: uid('rr'), name: o.name, email: o.email });
   repSetComboErr(kind, '');
   state.ui.repCombo.active = 0;
   repComboRerender(kind);
-  showToast(repComboBase(kind) === 'cc' ? `${o.name} copied in` : `${o.email} added`, 'mail');
+  showToast(repComboBase(kind) === 'cc' ? `${o.name || o.email} copied in` : `${o.email} added`, 'mail');
   document.getElementById(`rep-${kind}-input`)?.focus();
 }
-function repRemoveCc(id) { repSet('cc', repConfig(state.ctx).cc.filter(x => x !== id)); }
+function repRemoveCc(id) { repSet('cc', repConfig(state.ctx).cc.filter(r => r.id !== id)); }
 function repRemoveTo(id) {
   const cfg = repConfig(state.ctx);
   cfg.to = cfg.to.filter(r => r.id !== id);
@@ -3249,7 +3254,7 @@ function repRetry(id, type) {
 // as the client's monthly settings and can be changed for this email only.
 function repSendEmail(id) {
   const cfg = repConfig(state.ctx), h = repHistory(state.ctx).find(x => x.id === id);
-  state.ui.repDraft = { hid: id, types: repSendTypes(h), to: cfg.to.map(r => ({ ...r })), cc: [...cfg.cc], subject: cfg.subject, message: cfg.message, err: '' };
+  state.ui.repDraft = { hid: id, types: repSendTypes(h), to: cfg.to.map(r => ({ ...r })), cc: cfg.cc.map(r => ({ ...r })), subject: cfg.subject, message: cfg.message, err: { to: '', cc: '' } };
   openModal({ title: `${h.status !== 'sent' ? 'Send' : 'Resend'} the ${repMonthLabel(h.month)} email`, desc: 'It is sent as soon as you select Send now. Changes here apply to this email only.', size: 'xl',
     body: '<div id="rep-send-body"></div>',
     actions: [{ label: 'Cancel', kind: 'outline' }, { label: 'Send now', icon: 'send', onClick: repSendNow }] });
@@ -3260,17 +3265,16 @@ function repSendTypes(h) { return h.types.length ? h.types : repTypesOn(state.ct
 // message). Each picker sits under its label with the people chosen listed below it.
 function repRenderSend() {
   const d = state.ui.repDraft, ws = currentWs(), h = repHistory(ws.id).find(x => x.id === d.hid), full = d.to.length >= 20;
-  const agency = members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)));
   const people = (list, none) => list.length ? `<div class="rep-people">${list.join('')}</div>` : `<div class="t-muted rep-none">${none}</div>`;
   renderRegion('rep-send-body', `
     ${repSendTypesHTML(ws, h, d)}
     <div class="rep-send-cols">
       <section class="rep-send-panel" aria-labelledby="rep-send-rcpt">
         <h4 class="rep-send-head" id="rep-send-rcpt">Recipients</h4>
-        ${repComboHTML('send-to', 'To', repPlaceholder('to'), full ? 'Up to 20 recipients: remove one to add another.' : '', full, d.err)}
+        ${repComboHTML('send-to', 'To', repPlaceholder('to'), full ? 'Up to 20 recipients: remove one to add another.' : '', full, d.err.to)}
         ${people(d.to.map(r => repPersonChip(r.name, r.email, `repDraftRemove('to', '${r.id}')`)), 'No recipients yet.')}
-        ${agency.some(m => !d.cc.includes(m.id)) ? repComboHTML('send-cc', 'Cc', repPlaceholder('cc'), '') : '<div class="field-label rep-send-label">Cc</div>'}
-        ${people(d.cc.map(id => memberById(id)).filter(Boolean).map(m => repPersonChip(m.name, m.email, `repDraftRemove('cc', '${m.id}')`)), 'No one is copied in.')}
+        ${repComboHTML('send-cc', 'Cc', repPlaceholder('cc'), '', false, d.err.cc)}
+        ${people(d.cc.map(r => repPersonChip(r.name, r.email, `repDraftRemove('cc', '${r.id}')`)), 'No one is copied in.')}
       </section>
       <section class="rep-send-panel rep-send-email" aria-labelledby="rep-send-mail">
         <h4 class="rep-send-head" id="rep-send-mail">Email</h4>
@@ -3300,19 +3304,19 @@ function repDraftText(field, v) {
 }
 function repDraftRemove(kind, id) {
   const d = state.ui.repDraft;
-  if (kind === 'cc') d.cc = d.cc.filter(x => x !== id); else d.to = d.to.filter(r => r.id !== id);
+  d[kind] = d[kind].filter(r => r.id !== id);
   repRenderSend();
 }
 function repSendNow() {
   const d = state.ui.repDraft, list = repHistories[state.ctx], h = list.find(x => x.id === d.hid);
   if (!d.to.length) {
-    d.err = 'Add at least one recipient.';
+    d.err.to = 'Add at least one recipient.';
     repRenderSend();
     document.getElementById('rep-send-to-input')?.focus();
     return false;
   }
   const subject = d.subject.trim() || REP_SUBJECT;
-  const entry = { id: uid('rh'), month: h.month, sentAt: repToday().toISOString(), to: d.to.map(r => r.email), cc: [...d.cc], subject, message: d.message, status: 'sent', types: [...d.types] };
+  const entry = { id: uid('rh'), month: h.month, sentAt: repToday().toISOString(), to: d.to.map(r => r.email), cc: d.cc.map(r => r.email), subject, message: d.message, status: 'sent', types: [...d.types] };
   const i = list.indexOf(h);
   if (h.status !== 'sent' && i >= 0) list[i] = entry; else list.unshift(entry);
   state.ui.repDraft = null;
@@ -3459,7 +3463,7 @@ ${summary}
 - **One email for both reports:** the SEM and SMM Reports turned on are attached to the same monthly email.
 - **Schedule:** no on/off switch here: each report turned on (SEM / SMM tabs) is sent every month. Set per client: **Send on** (the 1st to the 28th of each month, so every month has the day) and **At** (on the hour, Singapore time). The default is the 3rd at 12:00 pm, by when most late conversions have come in; a "Default" tag shows while it is unchanged, and **Reset to default** once it is changed. Choosing the 1st or 2nd adds a note that late conversions may be missed. Each report covers the previous calendar month. The review period runs from the 1st to the send. The PDFs are made just before sending and their numbers are frozen.
 - **Recipients — To:** client contacts, up to 20, shown as chips (initials, name, email, remove ×). One **Add a recipient** field suggests workspace members as you type (arrow keys and Enter, or click) and also takes any valid email (a name can be typed with it as "Jane Tan <jane@company.com>"; the hint doesn't mention this). An invalid or duplicate email shows an error under the field, cleared as soon as you type again. Without recipients nothing is sent and the status is Inactive.
-- **Recipients — Cc:** agency members assigned to the workspace, as chips, added with the same kind of field (**Copy in an agency member**), which only suggests agency members (matched by name or email).
+- **Recipients — Cc:** anyone copied in, as chips, added with the same kind of field (**Copy someone in**): it suggests agency members assigned to the client and also takes any valid email. An address can only be on the email once (To or Cc); a duplicate or invalid one shows an error under the field.
 - **Picker copy:** To's placeholder is "Choose a workspace member, or type an email"; Cc's is "Choose an agency member, or type an email". On phones (600px and narrower) they shorten to "Member or email" and "Agency member or email", since placeholders can't wrap. No hint under the fields (only "Up to 20 recipients…" when To is full, or an error).
 - **Email:** account manager (cover "Prepared by" and reply-to), subject and message with {client}, {month} and {am} placeholders and a live subject preview; attachments \`{Client}_SEM-Report_{YYYY-MM}.pdf\` and \`{Client}_SMM-Report_{YYYY-MM}.pdf\`. Sent from a Galaxis no-reply address.
 - **Failures:** if a source's data can't be fetched (e.g. an expired connection), nothing is sent with missing data. It is tried again daily for 3 days, then marked Failed and the AM is notified.

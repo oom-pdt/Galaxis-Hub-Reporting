@@ -254,7 +254,6 @@ label.rep-block-title { cursor: pointer; }
 .rep-send-panel .rep-combo { max-width: none; }
 .rep-send-panel .rep-people, .rep-send-panel .rep-none { margin: -4px 0 0; }
 .rep-send-panel .rep-none { font-size: 13px; }
-.rep-send-label { margin-bottom: -6px; }
 .rep-send-panel .textarea { min-height: 170px; }
 @media (max-width: 760px) { .rep-send-cols { grid-template-columns: minmax(0, 1fr); } }
 .rep-combo-box { position: relative; }
