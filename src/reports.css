@@ -6,7 +6,9 @@
 .rep-agency-kpis .kpi-card { min-height: 0; }
 
 /* ---------- Summary card and banners ---------- */
-.rep-banner { margin-bottom: 16px; }
+.rep-banner { margin-bottom: 16px; flex-wrap: wrap; }
+/* On narrow screens the actions drop under the text instead of squeezing it. */
+.rep-banner > .grow { flex: 1 1 260px; min-width: 0; }
 .rep-banner .banner-text { overflow-wrap: anywhere; }
 .rep-banner-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
 .rep-banner-actions .banner-action { margin-left: 0; }
@@ -82,10 +84,8 @@ label.rep-block-title { cursor: pointer; }
 .rep-grid { gap: 16px 24px; margin-top: 8px; }
 .rep-default-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: var(--r-pill); background: var(--grey-light); color: var(--text-secondary); font-size: 11px; font-weight: 700; letter-spacing: .25px; white-space: nowrap; }
 /* Fixed schedule: read-only text, deliberately not styled like an input. */
-.rep-schedule { display: flex; flex-wrap: wrap; gap: 12px 48px; margin: 4px 0 0; }
-.rep-schedule div { min-width: 0; }
-.rep-schedule dt { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
-.rep-schedule dd { margin: 0; font-weight: 700; font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+.rep-schedule-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 240px)); gap: 12px 16px; }
+@media (max-width: 600px) { .rep-schedule-fields { grid-template-columns: minmax(0, 1fr); } }
 .rep-schedule-note { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 17px; color: var(--text-secondary); max-width: 760px; }
 .rep-schedule-note svg.lucide { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
 .rep-next { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--tint); color: var(--link); font-weight: 700; font-size: 13px; overflow-wrap: anywhere; }
@@ -236,6 +236,27 @@ label.rep-block-title { cursor: pointer; }
 .rep-person .chip-remove svg.lucide { width: 14px; height: 14px; }
 .rep-none { margin-bottom: 12px; }
 .rep-combo { max-width: 520px; }
+.rep-send-head { margin: 0 0 12px; padding: 0; font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--text); }
+/* Reports: plain checkboxes on one line, each with its PDF's name underneath. */
+.rep-send-types { display: flex; flex-wrap: wrap; gap: 12px 48px; margin-bottom: 20px; }
+.rep-send-type { display: flex; align-items: flex-start; gap: 10px; min-width: 0; cursor: pointer; }
+.rep-send-type.is-locked { cursor: default; }
+.rep-send-type input { width: 16px; height: 16px; margin: 2px 0 0; flex-shrink: 0; accent-color: var(--primary); }
+.rep-send-type-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rep-send-type-name { font-weight: 700; font-size: 14px; }
+.rep-send-file { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; min-width: 0; }
+.rep-send-file svg.lucide { width: 12px; height: 12px; flex-shrink: 0; }
+/* Recipients and Email: two panels side by side; one column on narrow screens. */
+.rep-send-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.rep-send-panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.rep-send-panel .rep-send-head { margin: 0; }
+.rep-send-email { background: #F7F8FA; }
+.rep-send-panel .rep-combo { max-width: none; }
+.rep-send-panel .rep-people, .rep-send-panel .rep-none { margin: -4px 0 0; }
+.rep-send-panel .rep-none { font-size: 13px; }
+.rep-send-label { margin-bottom: -6px; }
+.rep-send-panel .textarea { min-height: 170px; }
+@media (max-width: 760px) { .rep-send-cols { grid-template-columns: minmax(0, 1fr); } }
 .rep-combo-box { position: relative; }
 .rep-combo-list { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; max-height: 260px; overflow-y: auto; margin: 0; padding: 6px; list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-soft); }
 .rep-combo-opt { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; }

@@ -189,7 +189,7 @@ function showToast(message, icon = 'check-circle') {
 }
 
 // ---------- Modals ----------
-// openModal({ title, desc, body, size: 'lg', actions: [{ label, kind: 'primary'|'outline'|'danger', onClick, close: true }] })
+// openModal({ title, desc, body, size: 'lg' | 'xl', actions: [{ label, kind: 'primary'|'outline'|'danger', onClick, close: true }] })
 // onClick returning false keeps the modal open (e.g. validation failed).
 let modalActions = [];
 function openModal({ title, desc = '', body = '', actions = [], size = '', onOpen } = {}) {
@@ -197,7 +197,7 @@ function openModal({ title, desc = '', body = '', actions = [], size = '', onOpe
   const root = document.getElementById('modal-root');
   root.innerHTML = `
     <div class="modal-backdrop open" onclick="if (event.target === this) closeModal()">
-      <div class="modal ${size === 'lg' ? 'modal-lg' : ''}" role="dialog" aria-modal="true">
+      <div class="modal ${size ? `modal-${size}` : ''}" role="dialog" aria-modal="true">
         ${title ? `<h3 class="modal-title">${esc(title)}</h3>` : ''}
         ${desc ? `<p class="modal-desc">${esc(desc)}</p>` : ''}
         <div class="modal-body">${body}</div>

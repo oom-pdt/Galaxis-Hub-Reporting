@@ -210,13 +210,20 @@ svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
   height: 38px; width: 100%; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface);
   padding: 0 12px; font-size: 14px; outline: none; letter-spacing: .25px;
 }
+/* Own chevron instead of the browser's, so it sits 12px in from the border like the text. */
+.select {
+  appearance: none; -webkit-appearance: none; padding-right: 36px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236F6F6F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
+}
+.select:disabled { cursor: not-allowed; }
 .textarea { height: auto; min-height: 80px; padding: 10px 12px; resize: vertical; }
 .input::placeholder, .textarea::placeholder { color: #767676; }
 .input:focus, .select:focus, .textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(57, 143, 247, .15); }
 .input.invalid { border-color: var(--error); }
 .field-error { color: var(--error); font-size: 12px; }
 .field-hint { color: var(--text-muted); font-size: 12px; }
-.input:disabled, .select:disabled { background: var(--grey-light); color: var(--text-disabled); }
+.input:disabled, .select:disabled { background-color: var(--grey-light); color: var(--text-disabled); }
 .search { position: relative; }
 .search .input { padding-right: 34px; height: 36px; font-size: 12px; }
 .search svg.lucide { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 14px; height: 14px; }
@@ -332,11 +339,16 @@ svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
 .modal-backdrop.open { display: flex; }
 .modal { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-soft); width: 100%; max-width: 500px; max-height: calc(100vh - 80px); overflow-y: auto; padding: 24px; }
 .modal-lg { max-width: 640px; }
+.modal-xl { max-width: 960px; }
 .modal-title { font-family: var(--font-head); font-weight: 700; font-size: 20px; line-height: 24px; margin: 0; }
 .modal-desc { font-size: 14px; color: var(--text); margin: 6px 0 22px; letter-spacing: .25px; }
 .modal-body { display: flex; flex-direction: column; gap: 18px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 26px; }
 .modal-actions.center { justify-content: center; }
+/* Below the prototype's dev bar, and long forms keep their buttons in view while the body scrolls. */
+.modal-backdrop { padding-top: calc(var(--devbar-h, 0px) + 24px); }
+.modal { max-height: calc(100vh - 48px - var(--devbar-h, 0px)); }
+.modal-lg .modal-actions, .modal-xl .modal-actions { position: sticky; bottom: -24px; background: var(--surface); margin: 26px 0 -24px; padding: 14px 0 24px; border-top: 1px solid var(--border); }
 .modal-confirm { text-align: center; max-width: 500px; padding: 32px 36px; }
 .modal-confirm .confirm-icon { color: #B87512; margin-bottom: 18px; }
 .modal-confirm .confirm-icon.danger { color: var(--error); }
@@ -410,7 +422,9 @@ svg.lucide { width: 16px; height: 16px; stroke-width: 1.75; flex-shrink: 0; }
 .rep-agency-kpis .kpi-card { min-height: 0; }
 
 /* ---------- Summary card and banners ---------- */
-.rep-banner { margin-bottom: 16px; }
+.rep-banner { margin-bottom: 16px; flex-wrap: wrap; }
+/* On narrow screens the actions drop under the text instead of squeezing it. */
+.rep-banner > .grow { flex: 1 1 260px; min-width: 0; }
 .rep-banner .banner-text { overflow-wrap: anywhere; }
 .rep-banner-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
 .rep-banner-actions .banner-action { margin-left: 0; }
@@ -486,10 +500,8 @@ label.rep-block-title { cursor: pointer; }
 .rep-grid { gap: 16px 24px; margin-top: 8px; }
 .rep-default-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: var(--r-pill); background: var(--grey-light); color: var(--text-secondary); font-size: 11px; font-weight: 700; letter-spacing: .25px; white-space: nowrap; }
 /* Fixed schedule: read-only text, deliberately not styled like an input. */
-.rep-schedule { display: flex; flex-wrap: wrap; gap: 12px 48px; margin: 4px 0 0; }
-.rep-schedule div { min-width: 0; }
-.rep-schedule dt { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
-.rep-schedule dd { margin: 0; font-weight: 700; font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+.rep-schedule-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 240px)); gap: 12px 16px; }
+@media (max-width: 600px) { .rep-schedule-fields { grid-template-columns: minmax(0, 1fr); } }
 .rep-schedule-note { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 17px; color: var(--text-secondary); max-width: 760px; }
 .rep-schedule-note svg.lucide { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
 .rep-next { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--tint); color: var(--link); font-weight: 700; font-size: 13px; overflow-wrap: anywhere; }
@@ -640,6 +652,27 @@ label.rep-block-title { cursor: pointer; }
 .rep-person .chip-remove svg.lucide { width: 14px; height: 14px; }
 .rep-none { margin-bottom: 12px; }
 .rep-combo { max-width: 520px; }
+.rep-send-head { margin: 0 0 12px; padding: 0; font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--text); }
+/* Reports: plain checkboxes on one line, each with its PDF's name underneath. */
+.rep-send-types { display: flex; flex-wrap: wrap; gap: 12px 48px; margin-bottom: 20px; }
+.rep-send-type { display: flex; align-items: flex-start; gap: 10px; min-width: 0; cursor: pointer; }
+.rep-send-type.is-locked { cursor: default; }
+.rep-send-type input { width: 16px; height: 16px; margin: 2px 0 0; flex-shrink: 0; accent-color: var(--primary); }
+.rep-send-type-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rep-send-type-name { font-weight: 700; font-size: 14px; }
+.rep-send-file { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; min-width: 0; }
+.rep-send-file svg.lucide { width: 12px; height: 12px; flex-shrink: 0; }
+/* Recipients and Email: two panels side by side; one column on narrow screens. */
+.rep-send-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.rep-send-panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.rep-send-panel .rep-send-head { margin: 0; }
+.rep-send-email { background: #F7F8FA; }
+.rep-send-panel .rep-combo { max-width: none; }
+.rep-send-panel .rep-people, .rep-send-panel .rep-none { margin: -4px 0 0; }
+.rep-send-panel .rep-none { font-size: 13px; }
+.rep-send-label { margin-bottom: -6px; }
+.rep-send-panel .textarea { min-height: 170px; }
+@media (max-width: 760px) { .rep-send-cols { grid-template-columns: minmax(0, 1fr); } }
 .rep-combo-box { position: relative; }
 .rep-combo-list { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; max-height: 260px; overflow-y: auto; margin: 0; padding: 6px; list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-soft); }
 .rep-combo-opt { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; }
@@ -921,7 +954,7 @@ function showToast(message, icon = 'check-circle') {
 }
 
 // ---------- Modals ----------
-// openModal({ title, desc, body, size: 'lg', actions: [{ label, kind: 'primary'|'outline'|'danger', onClick, close: true }] })
+// openModal({ title, desc, body, size: 'lg' | 'xl', actions: [{ label, kind: 'primary'|'outline'|'danger', onClick, close: true }] })
 // onClick returning false keeps the modal open (e.g. validation failed).
 let modalActions = [];
 function openModal({ title, desc = '', body = '', actions = [], size = '', onOpen } = {}) {
@@ -929,7 +962,7 @@ function openModal({ title, desc = '', body = '', actions = [], size = '', onOpe
   const root = document.getElementById('modal-root');
   root.innerHTML = `
     <div class="modal-backdrop open" onclick="if (event.target === this) closeModal()">
-      <div class="modal ${size === 'lg' ? 'modal-lg' : ''}" role="dialog" aria-modal="true">
+      <div class="modal ${size ? `modal-${size}` : ''}" role="dialog" aria-modal="true">
         ${title ? `<h3 class="modal-title">${esc(title)}</h3>` : ''}
         ${desc ? `<p class="modal-desc">${esc(desc)}</p>` : ''}
         <div class="modal-body">${body}</div>
@@ -1906,6 +1939,7 @@ const ADS_PF_COLS = {
 //   table-2            Table columns           chevron-down       Expand / open a menu
 //   chevrons-up-down   Expand all              chevrons-down-up   Collapse all
 //   x                  Remove / close / clear  plus               Add
+//   rotate-ccw         Reset the schedule to its default
 //   paperclip          Attachments             download           Download PDF
 //   mail               Recipient added (toast) search             Search
 //   user               Account menu            home               Go to My Workspace
@@ -1980,7 +2014,6 @@ const REP_ORG_COLS = {
     adsPfCol('totalWatch', 'post', 'Reels total watch time', 'dur', 'Total time people spent watching the reel, including replays.', { needs: 'reelPlays' }),
     adsPfCol('followers', 'account', 'Followers', 'int', 'Followers on the last day of the month.', { levels: ['account'] }),
     adsPfCol('newFollows', 'account', 'New follows', 'int', 'Accounts that followed during the month.', { levels: ['account'] }),
-    adsPfCol('profileVisits', 'account', 'Profile visits', 'int', 'Visits to the Instagram profile during the month.', { levels: ['account'] }),
     adsPfCol('posts', 'account', 'Posts published', 'int', 'Posts and reels published during the month.', { levels: ['account'] })
   ]
 };
@@ -2074,8 +2107,7 @@ const REP_TYPES = {
     { id: 'fbPosts', title: 'Facebook Posts', source: 'facebook', blocks: [
       repT('f-posts', 'facebook', 'all', 'post', 'Posts', ['views', 'viewers', 'reactions', 'comments', 'shares', 'engagements', 'engRate'])] },
     { id: 'instagram', title: 'Instagram', note: 'Your Instagram account this month. Stories are not included, as Instagram only keeps their results for 24 hours.', source: 'instagram', blocks: [
-      repC('i-kpis', 'summary', 'instagram', 'Summary cards', { metrics: ['followers', 'newFollows', 'posts', 'views', 'reach', 'likes', 'comments', 'shares', 'saves', 'engagements', 'engRate', 'profileVisits', 'avgWatch', 'totalWatch'], off: ['likes', 'comments', 'shares', 'engRate', 'avgWatch', 'totalWatch'] }),
-      repC('i-fol', 'followers', 'instagram', 'Followers over time'), repC('i-fol-m', 'followersMonth', 'instagram', 'Followers this month'),
+      repC('i-kpis', 'summary', 'instagram', 'Summary cards', { metrics: ['followers', 'newFollows', 'posts', 'views', 'reach', 'likes', 'comments', 'shares', 'saves', 'engagements', 'engRate', 'avgWatch', 'totalWatch'], off: ['likes', 'shares', 'engRate', 'avgWatch', 'totalWatch'] }),
       repC('i-demo', 'demo', 'instagram', 'Audience by age and gender', { metric: 'reach' })] },
     { id: 'igPosts', title: 'Instagram Posts', source: 'instagram', blocks: [
       repT('i-posts', 'instagram', 'all', 'post', 'Posts and reels', ['views', 'reach', 'likes', 'comments', 'shares', 'saves', 'engagements', 'engRate', 'avgWatch', 'totalWatch'], { off: ['avgWatch', 'totalWatch'] })] },
@@ -2109,18 +2141,19 @@ function repAddMonths(month, n) { const [y, m] = month.split('-').map(Number); r
 function repMonthDays(month) { const [y, m] = month.split('-').map(Number); return new Date(y, m, 0).getDate(); }
 function repMonthLabel(month) { const [y, m] = month.split('-').map(Number); return `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${y}`; }
 function repLastMonth() { return repAddMonths(repMonthKey(repToday()), -1); }
-// Every client's reports for `month` are sent on the 3rd of the following month at 12:00 (Singapore time). Not
-// configurable: by the 3rd, most late conversions have come in.
-const REP_SEND_DAY = 3;
-function repSendDate(month, day = REP_SEND_DAY) { const [y, m] = month.split('-').map(Number); return new Date(y, m, day, 12, 0); }
+// A client's reports for `month` are sent on cfg.sendDay of the following month at cfg.sendHour:00 (Singapore time).
+// Default: the 3rd at 12:00, by when most late conversions have come in. Days stop at the 28th so every month has one.
+const REP_SEND_DAY = 3, REP_SEND_HOUR = 12;
+function repSendDate(month, cfg) { const [y, m] = month.split('-').map(Number); return new Date(y, m, cfg?.sendDay ?? REP_SEND_DAY, cfg?.sendHour ?? REP_SEND_HOUR, 0); }
+function repHourLabel(h) { return `${h % 12 || 12}:00 ${h < 12 ? 'am' : 'pm'}`; }
 function repOrdinal(n) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
 // The next reports to go out: last month's if their send date is still ahead, otherwise this month's.
 function repNextMonth(cfg) {
   const last = repLastMonth();
-  return repSendDate(last) > repToday() ? last : repAddMonths(last, 1);
+  return repSendDate(last, cfg) > repToday() ? last : repAddMonths(last, 1);
 }
-// The review period: the next report's month has ended but it hasn't been sent yet (1st of the month to the send on
-// the 3rd). The AM can preview the real report, change its set-up, or cancel the send. Before that the month is in progress.
+// The review period: the next report's month has ended but it hasn't been sent yet (1st of the month to the send
+// date). The AM can preview the real report, change its set-up, or cancel the send. Before that the month is in progress.
 function repInReview(cfg) { return repMonthKey(repToday()) > repNextMonth(cfg); }
 // cfg.skip: the month whose send the AM cancelled.
 function repCancelled(cfg) { return cfg.skip === repNextMonth(cfg); }
@@ -2243,7 +2276,7 @@ function repTotals(wsId, p, month, category) {
     o.viewers = Math.round(o.viewers * 0.62); o.reach = Math.round(o.reach * 0.62);
     o.engRate = o.reach ? o.engagements / o.reach * 100 : 0;
     o.followers = fol[fol.length - 1].value; o.newFollows = Math.round((fol[fol.length - 1].value - fol[0].value) * 1.25);
-    o.posts = posts.length; o.profileVisits = Math.round(o.reach * 0.04);
+    o.posts = posts.length;
     o.reelPlays = sum('reelPlays'); o.totalWatch = sum('totalWatch'); o.avgWatch = o.reelPlays ? o.totalWatch / o.reelPlays : 0;
     return o;
   });
@@ -2360,7 +2393,7 @@ function repSampleWs() {
 // =====================================================================
 // Each client's report set-up (in memory, like the rest of the demo)
 // =====================================================================
-// cfg: { owner (agency member: "Prepared by" and reply-to), subject, message, to: [{ id, name, email }],
+// cfg: { owner (agency member: "Prepared by" and reply-to), sendDay (1–28), sendHour (0–23, Singapore time), subject, message, to: [{ id, name, email }],
 //        cc: [agency member ids], reports: { sem | smm: { on, off: [section ids turned off], charts: [chart ids turned off],
 //        hide: { table or summary cards id: [column / number keys turned off] } } }, createdAt }
 const repConfigs = {};
@@ -2377,7 +2410,7 @@ function repNewConfig(wsId, o = {}) {
   const owner = wsPrimaryContact(wsId);
   const ws = wsById(wsId);
   return {
-    owner: CURRENT_USER_ID, subject: REP_SUBJECT, message: REP_MESSAGE,
+    owner: CURRENT_USER_ID, sendDay: REP_SEND_DAY, sendHour: REP_SEND_HOUR, subject: REP_SUBJECT, message: REP_MESSAGE,
     to: [...(owner ? [{ id: uid('rr'), name: owner.name, email: owner.email }] : []), { id: uid('rr'), name: 'Marketing Team', email: `marketing@${ws.site || 'example.com'}` }],
     cc: [CURRENT_USER_ID], reports: repNewReports(wsId), createdAt: repToday().toISOString(), ...o
   };
@@ -2389,8 +2422,8 @@ function repSeed(wsId) {
   const cfg = repNewConfig(wsId, { createdAt: '2026-06-20T10:00:00+08:00' });
   const types = REP_TYPE_IDS.filter(t => cfg.reports[t].on);
   const hist = [];
-  for (let m = '2026-07'; repSendDate(m) <= repToday(); m = repAddMonths(m, 1)) {
-    hist.unshift({ id: uid('rh'), month: m, sentAt: new Date(repSendDate(m).getTime() + 3 * 60000).toISOString(), to: cfg.to.map(r => r.email), status: 'sent', types });
+  for (let m = '2026-07'; repSendDate(m, cfg) <= repToday(); m = repAddMonths(m, 1)) {
+    hist.unshift({ id: uid('rh'), month: m, sentAt: new Date(repSendDate(m, cfg).getTime() + 3 * 60000).toISOString(), to: cfg.to.map(r => r.email), status: 'sent', types });
   }
   // One of each past status, newest first: Failed (the SEM Report couldn't be generated), Ready to send (it failed and
   // has since been regenerated), Cancelled (the AM cancelled the send during review), then Sent.
@@ -2719,7 +2752,7 @@ function repPages(r) {
         <div class="rep-cover-brand">galaxis</div>
         <div class="rep-cover-main">${r.sample ? '<div class="rep-sample-flag">Sample data: made-up names and numbers</div>' : ''}<div class="rep-cover-kicker">Monthly ${esc(t.name)}</div><div class="rep-cover-client">${esc(ws.name)}</div><div class="rep-cover-month">${esc(repMonthLabel(month))}</div>
           <div class="rep-cover-plats">${plats.map(p => `<span class="rep-cover-plat">${platformLogo(p)}${REP_PLATFORM[p]}</span>`).join('')}</div></div>
-        <div class="rep-cover-foot">Prepared by ${esc(am ? am.name : AGENCY_ORG.name)}, ${esc(AGENCY_ORG.name)} · Generated ${esc(fmtDate(repSendDate(month)))}</div>
+        <div class="rep-cover-foot">Prepared by ${esc(am ? am.name : AGENCY_ORG.name)}, ${esc(AGENCY_ORG.name)} · Generated ${esc(fmtDate(repSendDate(month, r.cfg)))}</div>
       </div>` });
     let slots = [], head = '', quad = false;
     const flush = () => { if (slots.length || head) pages.push({ html: head + (quad ? `<div class="rep-quad">${slots.join('')}</div>` : slots.join('')) }); slots = []; head = ''; quad = false; };
@@ -2765,7 +2798,7 @@ function repAgencyRows() {
   return visibleWorkspaces().filter(w => (!s || w.name.toLowerCase().includes(s)) && (!f || f.test(w.id))).map(w => {
     const cfg = repConfig(w.id), last = repHistory(w.id)[0], status = repStatus(w.id);
     const next = status === 'active' ? repNextMonth(cfg) : null;
-    return { w, cfg, last, status, next, types: cfg ? repTypesOn(w.id, cfg) : [], sendAt: next ? repSendDate(next) : null };
+    return { w, cfg, last, status, next, types: cfg ? repTypesOn(w.id, cfg) : [], sendAt: next ? repSendDate(next, cfg) : null };
   });
 }
 function repAgencyBody() {
@@ -2786,7 +2819,7 @@ function repAgencyBody() {
 // Next Send: the upcoming month with Month in progress, Ready for review (review period), Cancelled or Not scheduled.
 function repNextCell(r) {
   if (!r.types.length) return '<span class="t-muted">—</span>';
-  const next = repNextMonth(r.cfg), when = `<span class="cell-sub">Sends ${esc(fmtDateTime(repSendDate(next)))}</span>`;
+  const next = repNextMonth(r.cfg), when = `<span class="cell-sub">Sends ${esc(fmtDateTime(repSendDate(next, r.cfg)))}</span>`;
   const pill = r.status === 'inactive' ? `${repPill('off', 'Not scheduled')}<span class="cell-sub">${esc(repOffReason(r.w.id, r.cfg))}</span>`
     : !repInReview(r.cfg) ? `${repPill('off', 'Month in progress')}${when}`
     : repCancelled(r.cfg) ? `${repPill('failed', 'Cancelled')}<span class="cell-sub">Won’t be sent</span>`
@@ -2841,8 +2874,8 @@ function repSummaryCard(ws, cfg) {
   const these = `The ${repMonthLabel(next)} ${names} ${types.length > 1 ? 'reports' : 'report'}`;
   const line = !types.length ? 'No report is turned on. Turn on the SEM or SMM Report to start sending.'
     : status === 'inactive' ? 'Add at least one recipient to start sending.'
-    : repCancelled(cfg) ? `${these} won’t be sent: the send on ${fmtDateTime(repSendDate(next))} was cancelled.`
-    : `${these} ${repInReview(cfg) ? `${types.length > 1 ? 'are' : 'is'} ready to review in Sent Reports, and will be sent` : 'will be sent'} on ${fmtDateTime(repSendDate(next))} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}.`;
+    : repCancelled(cfg) ? `${these} won’t be sent: the send on ${fmtDateTime(repSendDate(next, cfg))} was cancelled.`
+    : `${these} ${repInReview(cfg) ? `${types.length > 1 ? 'are' : 'is'} ready to review in Sent Reports, and will be sent` : 'will be sent'} on ${fmtDateTime(repSendDate(next, cfg))} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}.`;
 
   return `${repFailedBanner(ws, last)}<section class="card rep-summary">
     <div class="grow"><div class="row wrap" style="gap:12px"><h2 class="h-card">Monthly Reports</h2>${repStatusDot(status)}</div><div class="rep-summary-line">${esc(line)}</div></div>
@@ -2997,28 +3030,34 @@ function repSet(field, value) {
   cfg[field] = value;
   rerender();
 }
+function repResetSchedule() {
+  Object.assign(repConfig(state.ctx), { sendDay: REP_SEND_DAY, sendHour: REP_SEND_HOUR });
+  rerender();
+}
 function repDeliveryHTML(ws, cfg) {
   const next = repNextMonth(cfg), types = repTypesOn(ws.id, cfg);
   const agency = members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)));
   const err = state.ui.repToErr || '';
-  // The schedule is the same for every client and can't be changed, so it is shown as plain text, not as fields.
-  return `<section class="card"><div class="card-header"><div><div class="row wrap" style="gap:10px"><h2 class="h-card">Schedule</h2><span class="rep-default-tag">Standard for all clients</span></div><div class="card-sub">Each report turned on goes out every month, with the SEM and SMM Reports together in one email. Each report covers the previous calendar month (1st to last day).</div></div></div>
+  const isDefault = cfg.sendDay === REP_SEND_DAY && cfg.sendHour === REP_SEND_HOUR;
+  const days = Array.from({ length: 28 }, (_, i) => i + 1), hours = Array.from({ length: 24 }, (_, i) => i);
+  return `<section class="card"><div class="card-header"><div><h2 class="h-card">Schedule</h2><div class="card-sub">Each report turned on goes out every month, with the SEM and SMM Reports together in one email. Each report covers the previous calendar month (1st to last day).</div></div>
+      ${isDefault ? '<span class="rep-default-tag">Default</span>' : `<button type="button" class="btn btn-secondary btn-sm" onclick="repResetSchedule()"><i data-lucide="rotate-ccw"></i>Reset to default</button>`}</div>
       <div class="stack-sm">
-        <dl class="rep-schedule">
-          <div><dt>Sent on</dt><dd>The 3rd of each month</dd></div>
-          <div><dt>At</dt><dd>12:00 pm, Singapore time</dd></div>
-        </dl>
-        <div class="rep-schedule-note"><i data-lucide="info"></i><span>This schedule is set by Galaxis for every client and can’t be changed. By the 3rd, most late conversions have come in. The PDFs are generated just before they are sent, and the numbers in them are kept as they were then.</span></div>
-        <div class="rep-next ${types.length ? '' : 'is-off'}"><i data-lucide="calendar-clock"></i><span>${esc(types.length ? `Next: the ${repMonthLabel(next)} reports, on ${fmtDateTime(repSendDate(next))}.` : 'No report is turned on.')}</span></div>
+        <div class="rep-schedule-fields">
+          <div class="field"><label class="field-label" for="rep-send-day">Send on</label><select class="select" id="rep-send-day" onchange="repSet('sendDay', Number(this.value))">${days.map(d => `<option value="${d}" ${d === cfg.sendDay ? 'selected' : ''}>The ${repOrdinal(d)} of each month</option>`).join('')}</select></div>
+          <div class="field"><label class="field-label" for="rep-send-hour">At (Singapore time)</label><select class="select" id="rep-send-hour" onchange="repSet('sendHour', Number(this.value))">${hours.map(h => `<option value="${h}" ${h === cfg.sendHour ? 'selected' : ''}>${repHourLabel(h)}</option>`).join('')}</select></div>
+        </div>
+        <div class="rep-schedule-note"><i data-lucide="info"></i><span>${cfg.sendDay < REP_SEND_DAY ? 'Sending this early may miss late conversions: Google and Meta can take a few days to count them. ' : ''}The default is the ${repOrdinal(REP_SEND_DAY)} at ${repHourLabel(REP_SEND_HOUR)}, by when most late conversions have come in. Until the send, you can review the reports in Sent Reports. The PDFs are generated just before they are sent, and the numbers in them are kept as they were then.</span></div>
+        <div class="rep-next ${types.length ? '' : 'is-off'}"><i data-lucide="calendar-clock"></i><span>${esc(types.length ? `Next: the ${repMonthLabel(next)} reports, on ${fmtDateTime(repSendDate(next, cfg))}.` : 'No report is turned on.')}</span></div>
       </div></section>
     <section class="card"><div class="card-header"><div><h2 class="h-card">Recipients</h2><div class="card-sub">The client contacts who receive the PDFs, and the agency members copied in. Up to 20 recipients.</div></div></div>
       <div class="form-section-title rep-first">To</div>
       ${cfg.to.length ? `<div class="rep-people">${cfg.to.map(r => repPersonChip(r.name, r.email, `repRemoveTo('${r.id}')`)).join('')}</div>`
         : `<div class="banner banner-warning"><i data-lucide="triangle-alert"></i><div><div class="banner-title">No recipients</div><div class="banner-text">Add at least one, or the reports won’t be sent.</div></div></div>`}
-      ${repComboHTML('to', 'Add a recipient', 'Type a name or email', cfg.to.length >= 20 ? 'Up to 20 recipients: remove one to add another.' : 'Choose a member of this workspace, or enter any email address. To include a name, type it as Jane Tan <jane@company.com>.', cfg.to.length >= 20, err)}
-      <div class="form-section-title">CC (agency)</div>
+      ${repComboHTML('to', 'Add a recipient', repPlaceholder('to'), cfg.to.length >= 20 ? 'Up to 20 recipients: remove one to add another.' : '', cfg.to.length >= 20, err)}
+      <div class="form-section-title">Cc</div>
       ${cfg.cc.length ? `<div class="rep-people">${cfg.cc.map(id => memberById(id)).filter(Boolean).map(m => repPersonChip(m.name, m.email, `repRemoveCc('${m.id}')`)).join('')}</div>` : '<div class="t-muted rep-none">No one is copied in.</div>'}
-      ${agency.some(m => !cfg.cc.includes(m.id)) ? repComboHTML('cc', 'Copy in an agency member', 'Type a name', 'Agency members assigned to this client.') : ''}
+      ${agency.some(m => !cfg.cc.includes(m.id)) ? repComboHTML('cc', 'Copy in an agency member', repPlaceholder('cc'), '') : ''}
     </section>
     <section class="card"><div class="card-header"><div><h2 class="h-card">Email</h2><div class="card-sub">Sent from Galaxis Reports. Replies go to the account manager.</div></div></div>
       <div class="stack-sm">
@@ -3040,7 +3079,7 @@ function repComboHTML(kind, label, placeholder, hint, disabled, err) {
     <div class="rep-combo-box"><input class="input ${err ? 'invalid' : ''}" id="${id}" placeholder="${esc(placeholder)}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rep-${kind}-list" aria-autocomplete="list" ${disabled ? 'disabled' : ''}
       oninput="repComboInput('${kind}')" onfocus="repComboOpen('${kind}')" onkeydown="repComboKey(event, '${kind}')" onblur="setTimeout(() => repComboClose('${kind}'), 150)">
       <ul class="rep-combo-list" id="rep-${kind}-list" role="listbox" hidden></ul></div>
-    ${err ? `<div class="field-error">${esc(err)}</div>` : `<div class="field-hint">${esc(hint)}</div>`}
+    ${err ? `<div class="field-error">${esc(err)}</div>` : hint ? `<div class="field-hint">${esc(hint)}</div>` : ''}
   </div>`;
 }
 // "Jane Tan <jane@company.com>" → { name, email }; a bare email has no name.
@@ -3048,10 +3087,21 @@ function repParsePerson(v) {
   const m = String(v).match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
   return m ? { name: m[1].replace(/^"|"$/g, ''), email: m[2].trim() } : { name: '', email: String(v).trim() };
 }
+// The picker edits the client's settings (kinds to, cc) or the draft of a one-off send (send-to, send-cc).
+// Placeholders can't wrap, so phones get a shorter version.
+function repNarrow() { return window.matchMedia('(max-width: 600px)').matches; }
+const REP_PLACEHOLDERS = { to: ['Choose a workspace member, or type an email', 'Member or email'], cc: ['Choose an agency member, or type an email', 'Agency member or email'] };
+function repPlaceholder(kind) { return REP_PLACEHOLDERS[kind][repNarrow() ? 1 : 0]; }
+function repComboBase(kind) { return kind.endsWith('cc') ? 'cc' : 'to'; }
+function repComboDraft(kind) { return kind.startsWith('send-'); }
+function repComboTarget(kind) { return repComboDraft(kind) ? state.ui.repDraft : repConfig(state.ctx); }
+function repComboErr(kind) { return repComboDraft(kind) ? state.ui.repDraft.err : state.ui.repToErr; }
+function repSetComboErr(kind, v) { if (repComboDraft(kind)) state.ui.repDraft.err = v; else state.ui.repToErr = v; }
+function repComboRerender(kind) { if (repComboDraft(kind)) repRenderSend(); else rerender(); }
 function repComboOptions(kind) {
-  const ws = currentWs(), cfg = repConfig(ws.id), q = (document.getElementById(`rep-${kind}-input`)?.value || '').trim().toLowerCase();
+  const ws = currentWs(), cfg = repComboTarget(kind), q = (document.getElementById(`rep-${kind}-input`)?.value || '').trim().toLowerCase();
   const match = m => !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
-  if (kind === 'cc') return members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)) && !cfg.cc.includes(m.id) && match(m)).map(m => ({ id: m.id, name: m.name, email: m.email }));
+  if (repComboBase(kind) === 'cc') return members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)) && !cfg.cc.includes(m.id) && match(m)).map(m => ({ id: m.id, name: m.name, email: m.email }));
   const taken = e => cfg.to.some(r => r.email.toLowerCase() === e.toLowerCase());
   const opts = members.filter(m => m.org === ws.id && m.status === 'active' && !taken(m.email) && match(m)).map(m => ({ name: m.name, email: m.email }));
   const typed = repParsePerson(q ? document.getElementById(`rep-${kind}-input`).value : '');
@@ -3067,18 +3117,18 @@ function repComboOpen(kind) {
   Object.assign(c, { kind, opts, active: Math.min(c.active, Math.max(0, opts.length - 1)) });
   list.innerHTML = opts.map((o, i) => `<li role="option" id="rep-${kind}-opt-${i}" aria-selected="${i === c.active}" class="rep-combo-opt ${i === c.active ? 'active' : ''}" onmousedown="event.preventDefault(); repComboPick('${kind}', ${i})">
       <span class="avatar">${esc(initials(o.name || o.email))}</span><span class="rep-person-text">${o.typed ? `<span class="rep-person-name">Add ${esc(o.name ? `${o.name} (${o.email})` : o.email)}</span>` : `<span class="rep-person-name">${esc(o.name)}</span><span class="rep-person-email">${esc(o.email)}</span>`}</span></li>`).join('')
-    || `<li class="rep-combo-empty">${esc(kind === 'cc' ? 'No other agency members match.' : 'No member matches. Type a full email address to add it.')}</li>`;
+    || `<li class="rep-combo-empty">${esc(repComboBase(kind) === 'cc' ? 'No other agency members match.' : 'No member matches. Type a full email address to add it.')}</li>`;
   list.hidden = false;
   input.setAttribute('aria-expanded', 'true');
   if (opts.length) input.setAttribute('aria-activedescendant', `rep-${kind}-opt-${c.active}`); else input.removeAttribute('aria-activedescendant');
 }
 // Typing again clears an error from the last attempt.
 function repComboInput(kind) {
-  if (kind === 'to' && state.ui.repToErr) {
-    state.ui.repToErr = '';
-    const input = document.getElementById('rep-to-input'), err = input.closest('.rep-combo').querySelector('.field-error');
+  if (repComboBase(kind) === 'to' && repComboErr(kind)) {
+    repSetComboErr(kind, '');
+    const input = document.getElementById(`rep-${kind}-input`), err = input.closest('.rep-combo').querySelector('.field-error');
     input.classList.remove('invalid');
-    if (err) { err.className = 'field-hint'; err.textContent = 'Choose a member of this workspace, or enter any email address. To include a name, type it as Jane Tan <jane@company.com>.'; }
+    if (err) err.remove();
   }
   repComboOpen(kind);
 }
@@ -3097,26 +3147,26 @@ function repComboKey(e, kind) {
     e.preventDefault();
     repComboOpen(kind);
     if (c.opts.length) repComboPick(kind, c.active);
-    else if (kind === 'to') repComboInvalid();
+    else if (repComboBase(kind) === 'to') repComboInvalid(kind);
   } else if (e.key === 'Escape') repComboClose(kind);
 }
 // Enter with nothing to pick: say why it can't be added.
-function repComboInvalid() {
-  const cfg = repConfig(state.ctx), v = document.getElementById('rep-to-input').value, { email } = repParsePerson(v);
+function repComboInvalid(kind) {
+  const cfg = repComboTarget(kind), v = document.getElementById(`rep-${kind}-input`).value, { email } = repParsePerson(v);
   if (!v.trim()) return;
-  state.ui.repToErr = cfg.to.some(r => r.email.toLowerCase() === email.toLowerCase()) ? 'This email is already a recipient.' : 'Enter a valid email address, or choose a member.';
-  rerender();
-  const el = document.getElementById('rep-to-input'); el.value = v; el.focus();
+  repSetComboErr(kind, cfg.to.some(r => r.email.toLowerCase() === email.toLowerCase()) ? 'This email is already a recipient.' : 'Enter a valid email address, or choose a member.');
+  repComboRerender(kind);
+  const el = document.getElementById(`rep-${kind}-input`); el.value = v; el.focus();
 }
 function repComboPick(kind, i) {
-  const o = state.ui.repCombo.opts[i], cfg = repConfig(state.ctx);
+  const o = state.ui.repCombo.opts[i], cfg = repComboTarget(kind);
   if (!o) return;
-  if (kind === 'cc') cfg.cc.push(o.id);
+  if (repComboBase(kind) === 'cc') cfg.cc.push(o.id);
   else cfg.to.push({ id: uid('rr'), name: o.name, email: o.email });
-  state.ui.repToErr = '';
+  repSetComboErr(kind, '');
   state.ui.repCombo.active = 0;
-  rerender();
-  showToast(kind === 'cc' ? `${o.name} copied in` : `${o.email} added`, 'mail');
+  repComboRerender(kind);
+  showToast(repComboBase(kind) === 'cc' ? `${o.name} copied in` : `${o.email} added`, 'mail');
   document.getElementById(`rep-${kind}-input`)?.focus();
 }
 function repRemoveCc(id) { repSet('cc', repConfig(state.ctx).cc.filter(x => x !== id)); }
@@ -3163,18 +3213,18 @@ function repUpcomingRow(ws, cfg, next, status) {
   const actions = status === 'inactive' ? '' : !review ? `<div class="rep-actions"><span class="t-muted rep-not-ready">${esc(`Preview from ${from}`)}</span></div>`
     : cancelled ? repActionCells([...preview('btn-outline'), `<button type="button" class="btn btn-outline btn-sm" onclick="repResume()"><i data-lucide="undo-2"></i>Resume send</button>`])
     : repActionCells([...preview('btn-primary'), `<button type="button" class="btn btn-outline btn-sm" onclick="repCancelSend()"><i data-lucide="ban"></i>Cancel send</button>`]);
-  return `<tr class="rep-upcoming"><td>${esc(repMonthLabel(next))}</td><td>${pill}</td><td>${status === 'inactive' || cancelled ? '<span class="t-muted">Not scheduled</span>' : esc(fmtDateTime(repSendDate(next)))}${repToLine(cfg.to.map(r => r.email))}</td><td>${actions}</td></tr>`;
+  return `<tr class="rep-upcoming"><td>${esc(repMonthLabel(next))}</td><td>${pill}</td><td>${status === 'inactive' || cancelled ? '<span class="t-muted">Not scheduled</span>' : esc(fmtDateTime(repSendDate(next, cfg)))}${repToLine(cfg.to.map(r => r.email))}</td><td>${actions}</td></tr>`;
 }
 function repCancelSend() {
   const cfg = repConfig(state.ctx), next = repNextMonth(cfg), types = repTypesOn(state.ctx, cfg);
-  confirmDialog({ title: `Cancel the ${repMonthLabel(next)} send?`, text: `The ${repJoin(types.map(t => REP_TYPES[t].name))} for ${repMonthLabel(next)} won’t be sent on ${fmtDateTime(repSendDate(next))}. You can resume the send before then, or send them later from Sent Reports.`, confirmLabel: 'Cancel send', danger: true, icon: 'ban',
+  confirmDialog({ title: `Cancel the ${repMonthLabel(next)} send?`, text: `The ${repJoin(types.map(t => REP_TYPES[t].name))} for ${repMonthLabel(next)} won’t be sent on ${fmtDateTime(repSendDate(next, cfg))}. You can resume the send before then, or send them later from Sent Reports.`, confirmLabel: 'Cancel send', danger: true, icon: 'ban',
     onConfirm: () => { cfg.skip = next; rerender(); showToast(`${repMonthLabel(next)} send cancelled`, 'ban'); } });
 }
 function repResume() {
   const cfg = repConfig(state.ctx), next = repNextMonth(cfg);
   cfg.skip = null;
   rerender();
-  showToast(`${repMonthLabel(next)} reports will be sent on ${fmtDateTime(repSendDate(next))}`, 'undo-2');
+  showToast(`${repMonthLabel(next)} reports will be sent on ${fmtDateTime(repSendDate(next, cfg))}`, 'undo-2');
 }
 // A sent email: View each report, Resend email. A failed one: Retry each report that couldn't be generated (View the
 // others), then Send email once nothing is still failing.
@@ -3195,17 +3245,79 @@ function repRetry(id, type) {
   rerender();
   showToast(`${REP_TYPES[type].name} for ${repMonthLabel(h.month)} regenerated${repStillFailing(h).length ? '' : '. The email is ready to send'}`, 'refresh-cw');
 }
+// Send email (a held or cancelled month) and Resend email (a sent one). The recipients, CC, subject and message start
+// as the client's monthly settings and can be changed for this email only.
 function repSendEmail(id) {
-  const ws = wsById(state.ctx), cfg = repConfig(state.ctx), list = repHistories[state.ctx], h = repHistory(state.ctx).find(x => x.id === id);
-  const types = h.types.length ? h.types : repTypesOn(ws.id, cfg);
-  confirmDialog({ title: `${h.status !== 'sent' ? 'Send' : 'Resend'} the ${repMonthLabel(h.month)} email?`, text: `The ${repJoin(types.map(t => REP_TYPES[t].name))} ${types.length > 1 ? 'go' : 'goes'} to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'} of ${ws.name} now, with the agency members copied in.`, confirmLabel: 'Send now', icon: 'send',
-    onConfirm: () => {
-      const entry = { id: uid('rh'), month: h.month, sentAt: repToday().toISOString(), to: cfg.to.map(r => r.email), status: 'sent', types };
-      const i = list.findIndex(x => x.id === id);
-      if (h.status !== 'sent' && i >= 0) list[i] = entry; else list.unshift(entry);
-            rerender();
-      showToast(`${repMonthLabel(h.month)} email sent to ${cfg.to.length} ${cfg.to.length === 1 ? 'recipient' : 'recipients'}`, 'send');
-    } });
+  const cfg = repConfig(state.ctx), h = repHistory(state.ctx).find(x => x.id === id);
+  state.ui.repDraft = { hid: id, types: repSendTypes(h), to: cfg.to.map(r => ({ ...r })), cc: [...cfg.cc], subject: cfg.subject, message: cfg.message, err: '' };
+  openModal({ title: `${h.status !== 'sent' ? 'Send' : 'Resend'} the ${repMonthLabel(h.month)} email`, desc: 'It is sent as soon as you select Send now. Changes here apply to this email only.', size: 'xl',
+    body: '<div id="rep-send-body"></div>',
+    actions: [{ label: 'Cancel', kind: 'outline' }, { label: 'Send now', icon: 'send', onClick: repSendNow }] });
+  repRenderSend();
+}
+function repSendTypes(h) { return h.types.length ? h.types : repTypesOn(state.ctx, repConfig(state.ctx)); }
+// Layout: a checkbox per report, then two panels side by side: Recipients (To, CC) and Email (subject,
+// message). Each picker sits under its label with the people chosen listed below it.
+function repRenderSend() {
+  const d = state.ui.repDraft, ws = currentWs(), h = repHistory(ws.id).find(x => x.id === d.hid), full = d.to.length >= 20;
+  const agency = members.filter(m => m.org === 'agency' && m.status === 'active' && (m.workspaces.includes('*') || m.workspaces.includes(ws.id)));
+  const people = (list, none) => list.length ? `<div class="rep-people">${list.join('')}</div>` : `<div class="t-muted rep-none">${none}</div>`;
+  renderRegion('rep-send-body', `
+    ${repSendTypesHTML(ws, h, d)}
+    <div class="rep-send-cols">
+      <section class="rep-send-panel" aria-labelledby="rep-send-rcpt">
+        <h4 class="rep-send-head" id="rep-send-rcpt">Recipients</h4>
+        ${repComboHTML('send-to', 'To', repPlaceholder('to'), full ? 'Up to 20 recipients: remove one to add another.' : '', full, d.err)}
+        ${people(d.to.map(r => repPersonChip(r.name, r.email, `repDraftRemove('to', '${r.id}')`)), 'No recipients yet.')}
+        ${agency.some(m => !d.cc.includes(m.id)) ? repComboHTML('send-cc', 'Cc', repPlaceholder('cc'), '') : '<div class="field-label rep-send-label">Cc</div>'}
+        ${people(d.cc.map(id => memberById(id)).filter(Boolean).map(m => repPersonChip(m.name, m.email, `repDraftRemove('cc', '${m.id}')`)), 'No one is copied in.')}
+      </section>
+      <section class="rep-send-panel rep-send-email" aria-labelledby="rep-send-mail">
+        <h4 class="rep-send-head" id="rep-send-mail">Email</h4>
+        <div class="field"><label class="field-label" for="rep-send-subject">Subject</label><input class="input" id="rep-send-subject" value="${esc(d.subject)}" oninput="repDraftText('subject', this.value)"><div class="field-hint" id="rep-send-subject-preview">Preview: ${esc(repFill(d.subject || REP_SUBJECT, ws.id, h.month))}</div></div>
+        <div class="field"><label class="field-label" for="rep-send-message">Message</label><textarea class="textarea" id="rep-send-message" rows="8" oninput="repDraftText('message', this.value)">${esc(d.message)}</textarea><div class="field-hint">{client}, {month} and {am} are replaced with the client’s name, the report month and the account manager’s name.</div></div>
+      </section>
+    </div>`);
+}
+// One checkbox per report in the email, so the AM can send just the SEM or SMM Report. The last one ticked can't be
+// unticked: an email needs at least one report.
+function repSendTypesHTML(ws, h, d) {
+  const all = repSendTypes(h);
+  return `<h4 class="rep-send-head" id="rep-send-reps">Reports</h4><div class="rep-send-types" role="group" aria-labelledby="rep-send-reps">${all.map(t => {
+      const on = d.types.includes(t), last = on && d.types.length === 1;
+      return `<label class="rep-send-type ${on ? 'on' : ''} ${last ? 'is-locked' : ''}" ${last ? 'title="An email needs at least one report."' : ''}><input type="checkbox" ${on ? 'checked' : ''} ${last ? 'aria-disabled="true" onclick="return false"' : ''} onchange="repDraftType('${t}', this.checked)"><span class="rep-send-type-text"><span class="rep-send-type-name">${esc(REP_TYPES[t].name)}</span><span class="rep-send-file"><i data-lucide="paperclip"></i>${esc(repFileName(ws.id, t, h.month))}</span></span></label>`;
+    }).join('')}</div>`;
+}
+function repDraftType(t, on) {
+  const d = state.ui.repDraft, h = repHistory(state.ctx).find(x => x.id === d.hid);
+  d.types = repSendTypes(h).filter(x => x === t ? on : d.types.includes(x));
+  repRenderSend();
+}
+function repDraftText(field, v) {
+  const d = state.ui.repDraft, h = repHistory(state.ctx).find(x => x.id === d.hid);
+  d[field] = v;
+  if (field === 'subject') document.getElementById('rep-send-subject-preview').textContent = `Preview: ${repFill(v.trim() || REP_SUBJECT, state.ctx, h.month)}`;
+}
+function repDraftRemove(kind, id) {
+  const d = state.ui.repDraft;
+  if (kind === 'cc') d.cc = d.cc.filter(x => x !== id); else d.to = d.to.filter(r => r.id !== id);
+  repRenderSend();
+}
+function repSendNow() {
+  const d = state.ui.repDraft, list = repHistories[state.ctx], h = list.find(x => x.id === d.hid);
+  if (!d.to.length) {
+    d.err = 'Add at least one recipient.';
+    repRenderSend();
+    document.getElementById('rep-send-to-input')?.focus();
+    return false;
+  }
+  const subject = d.subject.trim() || REP_SUBJECT;
+  const entry = { id: uid('rh'), month: h.month, sentAt: repToday().toISOString(), to: d.to.map(r => r.email), cc: [...d.cc], subject, message: d.message, status: 'sent', types: [...d.types] };
+  const i = list.indexOf(h);
+  if (h.status !== 'sent' && i >= 0) list[i] = entry; else list.unshift(entry);
+  state.ui.repDraft = null;
+  rerender();
+  showToast(`${repMonthLabel(h.month)} ${repJoin(d.types.map(t => REP_TYPES[t].short))} email sent to ${d.to.length} ${d.to.length === 1 ? 'recipient' : 'recipients'}`, 'send');
 }
 
 // ---------- PDF viewer. Route params: report=sem|smm, and preview=sample (sample data) or preview=YYYY-MM (a sent report) ----------
@@ -3224,7 +3336,7 @@ function repViewerHTML() {
   return `<div class="rep-viewer" role="dialog" aria-modal="true" aria-label="${esc(t.name)} preview">
     <div class="rep-viewer-bar">
       <div class="grow"><div class="rep-viewer-title">${r.sample ? `${esc(t.name)} preview <span class="rep-sample-badge">Sample data</span>` : `${esc(repFileName(r.wsId, r.type, r.month))}${r.upcoming ? ' <span class="rep-upcoming-badge">Upcoming</span>' : ''}`}</div>
-        <div class="rep-viewer-sub">${r.sample ? esc(`Made-up names and numbers, to check the sections and columns that are turned on. The real report uses ${ws.name}’s data.`) : r.upcoming ? esc(`Not sent yet: this is what recipients will get on ${fmtDateTime(repSendDate(r.month))}, with ${ws.name}’s data and the current set-up. Change sections, columns or recipients until then.`) : repHistory(r.wsId).some(h => h.month === r.month && h.status === 'cancelled') ? 'Generated, not sent: the send was cancelled during review.' : repHistory(r.wsId).some(h => h.month === r.month && h.status === 'failed') ? 'Generated, not sent yet: the email is held until every report in it has been generated.' : 'As sent. In the product this is the stored PDF; the prototype draws it again.'}</div></div>
+        <div class="rep-viewer-sub">${r.sample ? esc(`Made-up names and numbers, to check the sections and columns that are turned on. The real report uses ${ws.name}’s data.`) : r.upcoming ? esc(`Not sent yet: this is what recipients will get on ${fmtDateTime(repSendDate(r.month, r.cfg))}, with ${ws.name}’s data and the current set-up. Change sections, columns or recipients until then.`) : repHistory(r.wsId).some(h => h.month === r.month && h.status === 'cancelled') ? 'Generated, not sent: the send was cancelled during review.' : repHistory(r.wsId).some(h => h.month === r.month && h.status === 'failed') ? 'Generated, not sent yet: the email is held until every report in it has been generated.' : 'As sent. In the product this is the stored PDF; the prototype draws it again.'}</div></div>
       ${r.sample ? '' : `<select class="select rep-viewer-month" aria-label="Report month" onchange="state.params.preview = this.value; rerender()">${months.map(m => `<option value="${m}" ${m === r.month ? 'selected' : ''}>${esc(repMonthLabel(m))}</option>`).join('')}</select>`}
       <button type="button" class="btn btn-primary" onclick="repDownload()"><i data-lucide="download"></i>Download PDF</button>
       <button type="button" class="kebab rep-viewer-close" aria-label="Close preview" onclick="repClosePreview()"><i data-lucide="x"></i></button>
@@ -3345,19 +3457,21 @@ ${outline(type)}`, sources + (type === 'smm' ? connection : ''));
     'client-reports-delivery': spec('Reports › Schedule & Recipients (Client workspace, agency only)', 'When the reports are sent, who receives them and what the email says. Changes save as they are made.', `
 ${summary}
 - **One email for both reports:** the SEM and SMM Reports turned on are attached to the same monthly email.
-- **Schedule:** no on/off switch here: each report turned on (SEM / SMM tabs) is sent every month. **Sent on** (the 3rd of each month) and **At** (12:00 pm Singapore time) are shown as plain text with a "Standard for all clients" tag and a note that they can't be changed; they are not form fields: the same for every client, so most late conversions have come in. Each report covers the previous calendar month. The PDFs are made just before sending and their numbers are frozen.
-- **Recipients — To:** client contacts, up to 20, shown as chips (initials, name, email, remove ×). One **Add a recipient** field suggests workspace members as you type (arrow keys and Enter, or click) and also takes any valid email, with an optional name typed as "Jane Tan <jane@company.com>". An invalid or duplicate email shows an error under the field, cleared as soon as you type again. Without recipients nothing is sent and the status is Inactive.
-- **Recipients — CC:** agency members assigned to the workspace, as chips, added with the same kind of field (**Copy in an agency member**), which only suggests agency members.
+- **Schedule:** no on/off switch here: each report turned on (SEM / SMM tabs) is sent every month. Set per client: **Send on** (the 1st to the 28th of each month, so every month has the day) and **At** (on the hour, Singapore time). The default is the 3rd at 12:00 pm, by when most late conversions have come in; a "Default" tag shows while it is unchanged, and **Reset to default** once it is changed. Choosing the 1st or 2nd adds a note that late conversions may be missed. Each report covers the previous calendar month. The review period runs from the 1st to the send. The PDFs are made just before sending and their numbers are frozen.
+- **Recipients — To:** client contacts, up to 20, shown as chips (initials, name, email, remove ×). One **Add a recipient** field suggests workspace members as you type (arrow keys and Enter, or click) and also takes any valid email (a name can be typed with it as "Jane Tan <jane@company.com>"; the hint doesn't mention this). An invalid or duplicate email shows an error under the field, cleared as soon as you type again. Without recipients nothing is sent and the status is Inactive.
+- **Recipients — Cc:** agency members assigned to the workspace, as chips, added with the same kind of field (**Copy in an agency member**), which only suggests agency members (matched by name or email).
+- **Picker copy:** To's placeholder is "Choose a workspace member, or type an email"; Cc's is "Choose an agency member, or type an email". On phones (600px and narrower) they shorten to "Member or email" and "Agency member or email", since placeholders can't wrap. No hint under the fields (only "Up to 20 recipients…" when To is full, or an error).
 - **Email:** account manager (cover "Prepared by" and reply-to), subject and message with {client}, {month} and {am} placeholders and a live subject preview; attachments \`{Client}_SEM-Report_{YYYY-MM}.pdf\` and \`{Client}_SMM-Report_{YYYY-MM}.pdf\`. Sent from a Galaxis no-reply address.
 - **Failures:** if a source's data can't be fetched (e.g. an expired connection), nothing is sent with missing data. It is tried again daily for 3 days, then marked Failed and the AM is notified.
 - **PDPA:** recipient emails are personal data: only stored for sending, removed with the workspace; the prototype uses placeholder addresses only.`),
     'client-reports-history': spec('Reports › Sent Reports (Client workspace, agency only)', 'Every monthly email sent for this client, so the AM can see what the client received and resend it.', `
-- **First row: the next report.** While its month is still running: **Month in progress**, with "Preview from 1 Dec" in place of the Preview buttons. From the 1st of the following month until it is sent on the 3rd at 12:00 (the **review period**): **Ready for review**, with **Preview SEM / Preview SMM** (the real report as it will be sent, with the client's data and the current set-up, marked "Upcoming") and **Cancel send** (confirmation; the row then shows **Cancelled** with **Resume send**). Inactive workspaces show Inactive.
+- **First row: the next report.** While its month is still running: **Month in progress**, with "Preview from 1 Dec" in place of the Preview buttons. From the 1st of the following month until it is sent on the client's send date (the 3rd at 12:00 by default) (the **review period**): **Ready for review**, with **Preview SEM / Preview SMM** (the real report as it will be sent, with the client's data and the current set-up, marked "Upcoming") and **Cancel send** (confirmation; the row then shows **Cancelled** with **Resume send**). Inactive workspaces show Inactive.
 - **Past reports** have visible **View SEM / View SMM** buttons; next to them, **Resend email**. The action buttons sit in three fixed columns (SEM, SMM, send action), so they line up from row to row; nothing is hidden in a menu. Before the month ends the next report's row says "Preview from 1 Dec" instead of a button; during the review period its Preview buttons are the solid, primary call-out. The summary line says the reports are ready to review in Sent Reports.
 - **Agency list:** clients in the review period have a **Review** button that opens their Sent Reports tab, and Next Send shows a "Ready for review" pill with "Sends 3 Dec 2026, 12:00" (or "Cancelled").
 - Dev toggle **Review period (1st of next month)** shows this state.
 - **Prototype data:** Visual Studio's history shows one of each past status: October Failed (Retry SEM), September Ready to send (the SEM Report was regenerated), August Cancelled (Send email), and July Sent.
-- Each past email: month, status (Sent / Failed with the reason), sent date and time with "To 2 recipients" underneath (hover for the addresses). Which reports were attached shows in the row's View / Retry buttons, so there is no separate Reports or Recipients column: the table and its three action columns fit without scrolling down to a 1180px-wide window. Actions: **View SEM** / **View SMM** (the stored PDF, with the client's real data) and **Resend email** (confirmation, then sends to the current recipients).
+- Each past email: month, status (Sent / Failed with the reason), sent date and time with "To 2 recipients" underneath (hover for the addresses). Which reports were attached shows in the row's View / Retry buttons, so there is no separate Reports or Recipients column: the table and its three action columns fit without scrolling down to a 1180px-wide window. Actions: **View SEM** / **View SMM** (the stored PDF, with the client's real data) and **Resend email** (see Manual sends).
+- **Manual sends (Send email / Resend email, in this table and the banner):** a wide dialog titled "Send the October 2026 email" (or Resend), "Changes here apply to this email only." **Reports:** a plain checkbox per report in that month's email (SEM Report, SMM Report, each with its PDF file name underneath), on one line and ticked, so the AM can send just one; the last one ticked can't be unticked, since an email needs at least one report. Below, two panels side by side (stacked on narrow screens): **Recipients** (To, then Cc, each a picker as on Schedule & Recipients with the people chosen as chips underneath) and **Email** (grey panel: Subject with a live preview, Message). All start as the client's monthly settings. **Send now** with no recipient shows "Add at least one recipient." under To. Cancel and Send now stay pinned to the bottom of the dialog. The sent row records the reports, recipients, CC, subject and message actually used.
 - **A failed email** means a report couldn't be generated (e.g. Google Ads data couldn't be fetched); the email is held, not sent with a missing report. The row has **Retry SEM** / **Retry SMM** for each report that failed (regenerates just that report; the others show **View**), and **Send email**, disabled until no report is still failing. Once every report is regenerated the row shows **Ready to send**. The banner on every tab has the Retry buttons, then Send email, until the email is sent.`),
     'client-reports-sample': spec('Reports › Preview with sample data (Client workspace, agency only)', 'Check the layout of a report, with the sections and columns turned on for this client, without showing real data.', `
 - Opened from **Preview with sample data** on the SEM or SMM Report tab. Link: \`report=sem|smm&preview=sample\`.
@@ -3367,7 +3481,7 @@ ${summary}
 ### PDF layout (A4 landscape, page by page)
 1. **Cover:** Galaxis, "Monthly SEM Report" / "Monthly SMM Report", client name, month, the linked sources of that report, "Prepared by {AM}, ${AGENCY_ORG.name} · Generated {date}".
 2. Each section turned on, in order: **its heading (and note) starts a new page**; **charts two to a page**; **each table starts on a new page** (or under its heading), with as many rows per page as fit (14 for campaigns and ad groups; 12 for keywords and search terms; 8 for image and video ads, asset groups and Meta ads; 7 for posts; 5 for search ads, which show their text), "continued" on later pages, and a Total row at the end. Subtitle: "Top 10 of 34 keywords that ran in October 2026 · Sorted by Clicks, highest first".
-- **Daily charts (Google Ads and Meta Ads) cover the whole campaign:** from the earliest start date of the campaigns in the chart that ran in the report month (Google \`campaign.start_date\`, Meta \`start_time\`), capped at two months before the report month, to the month's last day. The report month is shaded and labelled; ticks on the 1st and 15th. **Followers** (Facebook and Instagram) has two charts: **Followers over time** covers the whole time the agency has managed the client's social media (service start date, up to 12 months) to the end of the report month, with the report month shaded; **Followers this month** covers the report month only, with a dot and line on each day a post went live, so follower changes can be read against posting days (over a long period the post markers are too dense to read).
+- **Daily charts (Google Ads and Meta Ads) cover the whole campaign:** from the earliest start date of the campaigns in the chart that ran in the report month (Google \`campaign.start_date\`, Meta \`start_time\`), capped at two months before the report month, to the month's last day. The report month is shaded and labelled; ticks on the 1st and 15th. **Followers** (Facebook only) has two charts: **Followers over time** covers the whole time the agency has managed the client's social media (service start date, up to 12 months) to the end of the report month, with the report month shaded; **Followers this month** covers the report month only, with a dot and line on each day a post went live, so follower changes can be read against posting days (over a long period the post markers are too dense to read). Instagram has no follower charts: the daily follower history can't be pulled, so the charts would need Galaxis to save the count every day.
 - **Conversion type breakdown** (right after Campaign performance, below Conversions by campaign): each campaign with conversions, most first, with its conversion actions (Google \`segments.conversion_action_name\`) indented underneath; a Total row.
 - **Age and gender** (SEM, after Conversion type breakdown): Clicks by age, Clicks by gender, Conversions by age and Conversions by gender, four charts on one page. Google Ads can't group by age and gender in the same query (\`age_range_view\` and \`gender_view\` are separate reports), so they are separate charts. Each includes Unknown.
 - **Report colours** follow OOm's brand, modernised: wine (#A51F4E) for the main series, slate (#3E5468) for a second series and men, blush tints for table headers and the shaded report month, a deep plum-to-wine cover.
